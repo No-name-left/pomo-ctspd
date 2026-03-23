@@ -49,8 +49,8 @@ tester_params = {
     'use_cuda': USE_CUDA,
     'cuda_device_num': CUDA_DEVICE_NUM,
     'model_load': {
-        'path': './result/saved_tsp20_model',  # directory path of pre-trained model and log files saved.
-        'epoch': 510,  # epoch version of pre-trained model to laod.
+        'path': './result/20260322_233459_train__tsp_n20',  # directory path of pre-trained model and log files saved.
+        'epoch': 1,  # epoch version of pre-trained model to laod.
     },
     'test_episodes': 100*1000,
     'test_batch_size': 10000,

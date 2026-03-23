@@ -1,6 +1,9 @@
 ##########################################################################################
 # Machine Environment Config
 
+import os
+os.environ['MPLBACKEND'] = 'Agg'  # ← 必须放在第一位！在任何import之前
+
 DEBUG_MODE = False
 USE_CUDA = not DEBUG_MODE
 CUDA_DEVICE_NUM = 0
@@ -12,6 +15,8 @@ CUDA_DEVICE_NUM = 0
 import os
 import sys
 
+os.environ['MPLBACKEND'] = 'Agg'
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, "..")  # for problem_def
 sys.path.insert(0, "../..")  # for utils
@@ -59,12 +64,12 @@ optimizer_params = {
 trainer_params = {
     'use_cuda': USE_CUDA,
     'cuda_device_num': CUDA_DEVICE_NUM,
-    'epochs': 510,
-    'train_episodes': 100 * 1000,
-    'train_batch_size': 64,
+    'epochs': 10,
+    'train_episodes': 10 * 1000,
+    'train_batch_size': 16,
     'logging': {
         'model_save_interval': 10,
-        'img_save_interval': 10,
+        'img_save_interval': 1,
         'log_image_params_1': {
             'json_foldername': 'log_image_style',
             'filename': 'style_tsp_20.json'
