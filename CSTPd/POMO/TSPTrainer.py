@@ -2,7 +2,7 @@
 import torch
 from logging import getLogger
 
-from TSPEnv import TSPEnv as Env
+from CSTPd.POMO.CTSPd_Env import TSPEnv as Env
 from TSPModel import TSPModel as Model
 
 from torch.optim import Adam as Optimizer
