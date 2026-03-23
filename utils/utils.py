@@ -272,8 +272,13 @@ def _build_log_image_plt(img_params,
 
     if labels is None:
         labels = result_log.get_keys()
+    
+    # 关键修改1：判断是否是 Loss 图（用于后续特殊处理）
+    is_loss_plot = any('loss' in label.lower() for label in labels)
+    is_score_plot = any('score' in label.lower() for label in labels)
+    
     for label in labels:
-        plt.plot(*result_log.getXY(label), label=label)
+        plt.plot(*result_log.getXY(label), label=label, linewidth=2.5)  # 加粗线条
 
     ylim_min = config['ylim']['min']
     ylim_max = config['ylim']['max']
@@ -291,9 +296,32 @@ def _build_log_image_plt(img_params,
         xlim_max = plt.gca().dataLim.xmax
     plt.xlim(xlim_min, xlim_max)
 
-    plt.rc('legend', **{'fontsize': 18})
-    plt.legend()
-    plt.grid(config["grid"])
+    # 关键修改2：缩小 legend 字体（从 18 改为 10）
+    plt.rc('legend', **{'fontsize': 10})
+    plt.legend(loc='best', frameon=True, fancybox=True, shadow=True)
+    
+    # 关键修改3：添加坐标轴标题
+    plt.xlabel('Epoch', fontsize=12, fontweight='bold')
+    
+    # 关键修改4：根据图表类型设置 Y 轴标题，并反转 Loss 的 Y 轴
+    if is_loss_plot:
+        plt.ylabel('Policy Gradient Loss', fontsize=12, fontweight='bold')
+        # 关键修改5：反转 Y 轴，让 Loss 绝对值减小显示为"下降"
+        # 注意：要在设置 ylim 之后反转，否则会被覆盖
+        plt.gca().invert_yaxis()
+    elif is_score_plot:
+        plt.ylabel('Average Tour Length', fontsize=12, fontweight='bold')
+        # Score 不需要反转，越小越好，自然向下
+    else:
+        plt.ylabel('Value', fontsize=12, fontweight='bold')
+    
+    plt.grid(config["grid"], alpha=0.3, linestyle='--')  # 美化网格
+    
+    # 添加标题（可选）
+    if is_loss_plot:
+        plt.title('POMO Training Loss Curve', fontsize=14, fontweight='bold', pad=15)
+    elif is_score_plot:
+        plt.title('POMO Training Score Curve', fontsize=14, fontweight='bold', pad=15)
 
 
 def copy_all_src(dst_root):

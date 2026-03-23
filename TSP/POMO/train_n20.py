@@ -64,12 +64,12 @@ optimizer_params = {
 trainer_params = {
     'use_cuda': USE_CUDA,
     'cuda_device_num': CUDA_DEVICE_NUM,
-    'epochs': 10,
-    'train_episodes': 10 * 1000,
-    'train_batch_size': 16,
+    'epochs': 200,
+    'train_episodes': 100 * 1000,
+    'train_batch_size': 256,
     'logging': {
-        'model_save_interval': 10,
-        'img_save_interval': 1,
+        'model_save_interval': 50,
+        'img_save_interval': 50,
         'log_image_params_1': {
             'json_foldername': 'log_image_style',
             'filename': 'style_tsp_20.json'
