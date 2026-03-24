@@ -63,7 +63,7 @@ if tester_params['augmentation_enable']:
 
 logger_params = {
     'log_file': {
-        'desc': 'test__ctspd_n20',
+        'desc': 'test__tsp_n20',
         'filename': 'run_log'
     }
 }

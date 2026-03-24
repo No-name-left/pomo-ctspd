@@ -1,0 +1,111 @@
+[2026-03-24 22:37:22] test_n20.py(97) : DEBUG_MODE: False
+[2026-03-24 22:37:22] test_n20.py(98) : USE_CUDA: True, CUDA_DEVICE_NUM: 0
+[2026-03-24 22:37:22] test_n20.py(99) : env_params{'problem_size': 20, 'pomo_size': 20}
+[2026-03-24 22:37:22] test_n20.py(99) : model_params{'embedding_dim': 128, 'sqrt_embedding_dim': 11.313708498984761, 'encoder_layer_num': 6, 'qkv_dim': 16, 'head_num': 8, 'logit_clipping': 10, 'ff_hidden_dim': 512, 'eval_type': 'argmax'}
+[2026-03-24 22:37:22] test_n20.py(99) : tester_params{'use_cuda': True, 'cuda_device_num': 0, 'model_load': {'path': './result/20260324_223155_train__ctspd_n20', 'epoch': 20}, 'test_episodes': 100000, 'test_batch_size': 1000, 'augmentation_enable': True, 'aug_factor': 8, 'aug_batch_size': 1000}
+[2026-03-24 22:37:22] test_n20.py(99) : logger_params{'log_file': {'desc': 'test__tsp_n20', 'filename': 'run_log', 'filepath': './result/20260324_233719_test__tsp_n20'}}
+[2026-03-24 22:37:22] CTSPd_Tester.py(47) : Model loaded from ./result/20260324_223155_train__ctspd_n20/checkpoint-20.pt
+[2026-03-24 22:37:23] CTSPd_Tester.py(70) : *** Testing on random instances ***
+[2026-03-24 22:37:25] CTSPd_Tester.py(94) : episode 1000/100000, Elapsed[0.04m], Remain[3.68m], score:4.572, aug_score:4.494
+[2026-03-24 22:37:26] CTSPd_Tester.py(94) : episode 2000/100000, Elapsed[0.07m], Remain[3.20m], score:4.559, aug_score:4.488
+[2026-03-24 22:37:28] CTSPd_Tester.py(94) : episode 3000/100000, Elapsed[0.09m], Remain[3.03m], score:4.578, aug_score:4.498
+[2026-03-24 22:37:30] CTSPd_Tester.py(94) : episode 4000/100000, Elapsed[0.12m], Remain[2.92m], score:4.574, aug_score:4.498
+[2026-03-24 22:37:32] CTSPd_Tester.py(94) : episode 5000/100000, Elapsed[0.15m], Remain[2.85m], score:4.581, aug_score:4.505
+[2026-03-24 22:37:33] CTSPd_Tester.py(94) : episode 6000/100000, Elapsed[0.18m], Remain[2.80m], score:4.559, aug_score:4.483
+[2026-03-24 22:37:35] CTSPd_Tester.py(94) : episode 7000/100000, Elapsed[0.21m], Remain[2.75m], score:4.571, aug_score:4.495
+[2026-03-24 22:37:37] CTSPd_Tester.py(94) : episode 8000/100000, Elapsed[0.24m], Remain[2.71m], score:4.548, aug_score:4.472
+[2026-03-24 22:37:38] CTSPd_Tester.py(94) : episode 9000/100000, Elapsed[0.26m], Remain[2.67m], score:4.566, aug_score:4.489
+[2026-03-24 22:37:40] CTSPd_Tester.py(94) : episode 10000/100000, Elapsed[0.29m], Remain[2.63m], score:4.565, aug_score:4.489
+[2026-03-24 22:37:42] CTSPd_Tester.py(94) : episode 11000/100000, Elapsed[0.32m], Remain[2.59m], score:4.565, aug_score:4.488
+[2026-03-24 22:37:43] CTSPd_Tester.py(94) : episode 12000/100000, Elapsed[0.35m], Remain[2.56m], score:4.589, aug_score:4.513
+[2026-03-24 22:37:45] CTSPd_Tester.py(94) : episode 13000/100000, Elapsed[0.38m], Remain[2.53m], score:4.560, aug_score:4.483
+[2026-03-24 22:37:47] CTSPd_Tester.py(94) : episode 14000/100000, Elapsed[0.41m], Remain[2.50m], score:4.576, aug_score:4.496
+[2026-03-24 22:37:49] CTSPd_Tester.py(94) : episode 15000/100000, Elapsed[0.43m], Remain[2.46m], score:4.563, aug_score:4.483
+[2026-03-24 22:37:50] CTSPd_Tester.py(94) : episode 16000/100000, Elapsed[0.46m], Remain[2.43m], score:4.576, aug_score:4.498
+[2026-03-24 22:37:52] CTSPd_Tester.py(94) : episode 17000/100000, Elapsed[0.49m], Remain[2.41m], score:4.581, aug_score:4.507
+[2026-03-24 22:37:54] CTSPd_Tester.py(94) : episode 18000/100000, Elapsed[0.52m], Remain[2.38m], score:4.573, aug_score:4.494
+[2026-03-24 22:37:56] CTSPd_Tester.py(94) : episode 19000/100000, Elapsed[0.55m], Remain[2.35m], score:4.568, aug_score:4.492
+[2026-03-24 22:37:57] CTSPd_Tester.py(94) : episode 20000/100000, Elapsed[0.58m], Remain[2.32m], score:4.578, aug_score:4.499
+[2026-03-24 22:37:59] CTSPd_Tester.py(94) : episode 21000/100000, Elapsed[0.61m], Remain[2.29m], score:4.578, aug_score:4.502
+[2026-03-24 22:38:01] CTSPd_Tester.py(94) : episode 22000/100000, Elapsed[0.64m], Remain[2.27m], score:4.560, aug_score:4.486
+[2026-03-24 22:38:03] CTSPd_Tester.py(94) : episode 23000/100000, Elapsed[0.67m], Remain[2.24m], score:4.583, aug_score:4.505
+[2026-03-24 22:38:04] CTSPd_Tester.py(94) : episode 24000/100000, Elapsed[0.70m], Remain[2.21m], score:4.566, aug_score:4.485
+[2026-03-24 22:38:06] CTSPd_Tester.py(94) : episode 25000/100000, Elapsed[0.73m], Remain[2.18m], score:4.533, aug_score:4.458
+[2026-03-24 22:38:08] CTSPd_Tester.py(94) : episode 26000/100000, Elapsed[0.76m], Remain[2.15m], score:4.560, aug_score:4.486
+[2026-03-24 22:38:10] CTSPd_Tester.py(94) : episode 27000/100000, Elapsed[0.79m], Remain[2.12m], score:4.553, aug_score:4.481
+[2026-03-24 22:38:11] CTSPd_Tester.py(94) : episode 28000/100000, Elapsed[0.81m], Remain[2.09m], score:4.573, aug_score:4.497
+[2026-03-24 22:38:13] CTSPd_Tester.py(94) : episode 29000/100000, Elapsed[0.84m], Remain[2.07m], score:4.555, aug_score:4.478
+[2026-03-24 22:38:15] CTSPd_Tester.py(94) : episode 30000/100000, Elapsed[0.87m], Remain[2.04m], score:4.568, aug_score:4.494
+[2026-03-24 22:38:17] CTSPd_Tester.py(94) : episode 31000/100000, Elapsed[0.90m], Remain[2.01m], score:4.555, aug_score:4.484
+[2026-03-24 22:38:18] CTSPd_Tester.py(94) : episode 32000/100000, Elapsed[0.93m], Remain[1.98m], score:4.550, aug_score:4.477
+[2026-03-24 22:38:20] CTSPd_Tester.py(94) : episode 33000/100000, Elapsed[0.96m], Remain[1.95m], score:4.540, aug_score:4.467
+[2026-03-24 22:38:22] CTSPd_Tester.py(94) : episode 34000/100000, Elapsed[0.99m], Remain[1.92m], score:4.574, aug_score:4.497
+[2026-03-24 22:38:24] CTSPd_Tester.py(94) : episode 35000/100000, Elapsed[1.02m], Remain[1.89m], score:4.577, aug_score:4.503
+[2026-03-24 22:38:25] CTSPd_Tester.py(94) : episode 36000/100000, Elapsed[1.05m], Remain[1.86m], score:4.549, aug_score:4.479
+[2026-03-24 22:38:27] CTSPd_Tester.py(94) : episode 37000/100000, Elapsed[1.08m], Remain[1.84m], score:4.555, aug_score:4.486
+[2026-03-24 22:38:29] CTSPd_Tester.py(94) : episode 38000/100000, Elapsed[1.11m], Remain[1.81m], score:4.579, aug_score:4.499
+[2026-03-24 22:38:31] CTSPd_Tester.py(94) : episode 39000/100000, Elapsed[1.14m], Remain[1.78m], score:4.564, aug_score:4.493
+[2026-03-24 22:38:32] CTSPd_Tester.py(94) : episode 40000/100000, Elapsed[1.17m], Remain[1.75m], score:4.562, aug_score:4.486
+[2026-03-24 22:38:34] CTSPd_Tester.py(94) : episode 41000/100000, Elapsed[1.19m], Remain[1.72m], score:4.553, aug_score:4.478
+[2026-03-24 22:38:36] CTSPd_Tester.py(94) : episode 42000/100000, Elapsed[1.22m], Remain[1.69m], score:4.573, aug_score:4.494
+[2026-03-24 22:38:38] CTSPd_Tester.py(94) : episode 43000/100000, Elapsed[1.25m], Remain[1.66m], score:4.584, aug_score:4.511
+[2026-03-24 22:38:39] CTSPd_Tester.py(94) : episode 44000/100000, Elapsed[1.28m], Remain[1.63m], score:4.541, aug_score:4.466
+[2026-03-24 22:38:41] CTSPd_Tester.py(94) : episode 45000/100000, Elapsed[1.31m], Remain[1.60m], score:4.544, aug_score:4.466
+[2026-03-24 22:38:43] CTSPd_Tester.py(94) : episode 46000/100000, Elapsed[1.34m], Remain[1.57m], score:4.545, aug_score:4.474
+[2026-03-24 22:38:45] CTSPd_Tester.py(94) : episode 47000/100000, Elapsed[1.37m], Remain[1.55m], score:4.583, aug_score:4.508
+[2026-03-24 22:38:47] CTSPd_Tester.py(94) : episode 48000/100000, Elapsed[1.40m], Remain[1.52m], score:4.546, aug_score:4.468
+[2026-03-24 22:38:48] CTSPd_Tester.py(94) : episode 49000/100000, Elapsed[1.43m], Remain[1.49m], score:4.574, aug_score:4.499
+[2026-03-24 22:38:50] CTSPd_Tester.py(94) : episode 50000/100000, Elapsed[1.46m], Remain[1.46m], score:4.567, aug_score:4.488
+[2026-03-24 22:38:52] CTSPd_Tester.py(94) : episode 51000/100000, Elapsed[1.49m], Remain[1.43m], score:4.586, aug_score:4.509
+[2026-03-24 22:38:54] CTSPd_Tester.py(94) : episode 52000/100000, Elapsed[1.52m], Remain[1.40m], score:4.573, aug_score:4.498
+[2026-03-24 22:38:55] CTSPd_Tester.py(94) : episode 53000/100000, Elapsed[1.55m], Remain[1.37m], score:4.597, aug_score:4.518
+[2026-03-24 22:38:57] CTSPd_Tester.py(94) : episode 54000/100000, Elapsed[1.58m], Remain[1.34m], score:4.571, aug_score:4.494
+[2026-03-24 22:38:59] CTSPd_Tester.py(94) : episode 55000/100000, Elapsed[1.61m], Remain[1.31m], score:4.568, aug_score:4.493
+[2026-03-24 22:39:01] CTSPd_Tester.py(94) : episode 56000/100000, Elapsed[1.63m], Remain[1.28m], score:4.558, aug_score:4.481
+[2026-03-24 22:39:02] CTSPd_Tester.py(94) : episode 57000/100000, Elapsed[1.66m], Remain[1.25m], score:4.571, aug_score:4.497
+[2026-03-24 22:39:04] CTSPd_Tester.py(94) : episode 58000/100000, Elapsed[1.69m], Remain[1.23m], score:4.586, aug_score:4.512
+[2026-03-24 22:39:06] CTSPd_Tester.py(94) : episode 59000/100000, Elapsed[1.72m], Remain[1.20m], score:4.558, aug_score:4.483
+[2026-03-24 22:39:08] CTSPd_Tester.py(94) : episode 60000/100000, Elapsed[1.75m], Remain[1.17m], score:4.557, aug_score:4.477
+[2026-03-24 22:39:09] CTSPd_Tester.py(94) : episode 61000/100000, Elapsed[1.78m], Remain[1.14m], score:4.569, aug_score:4.495
+[2026-03-24 22:39:11] CTSPd_Tester.py(94) : episode 62000/100000, Elapsed[1.81m], Remain[1.11m], score:4.572, aug_score:4.496
+[2026-03-24 22:39:13] CTSPd_Tester.py(94) : episode 63000/100000, Elapsed[1.84m], Remain[1.08m], score:4.573, aug_score:4.497
+[2026-03-24 22:39:15] CTSPd_Tester.py(94) : episode 64000/100000, Elapsed[1.87m], Remain[1.05m], score:4.573, aug_score:4.498
+[2026-03-24 22:39:16] CTSPd_Tester.py(94) : episode 65000/100000, Elapsed[1.90m], Remain[1.02m], score:4.584, aug_score:4.504
+[2026-03-24 22:39:18] CTSPd_Tester.py(94) : episode 66000/100000, Elapsed[1.93m], Remain[0.99m], score:4.576, aug_score:4.499
+[2026-03-24 22:39:20] CTSPd_Tester.py(94) : episode 67000/100000, Elapsed[1.96m], Remain[0.96m], score:4.557, aug_score:4.484
+[2026-03-24 22:39:22] CTSPd_Tester.py(94) : episode 68000/100000, Elapsed[1.99m], Remain[0.93m], score:4.564, aug_score:4.489
+[2026-03-24 22:39:23] CTSPd_Tester.py(94) : episode 69000/100000, Elapsed[2.02m], Remain[0.91m], score:4.558, aug_score:4.483
+[2026-03-24 22:39:25] CTSPd_Tester.py(94) : episode 70000/100000, Elapsed[2.04m], Remain[0.88m], score:4.528, aug_score:4.456
+[2026-03-24 22:39:27] CTSPd_Tester.py(94) : episode 71000/100000, Elapsed[2.07m], Remain[0.85m], score:4.567, aug_score:4.496
+[2026-03-24 22:39:29] CTSPd_Tester.py(94) : episode 72000/100000, Elapsed[2.10m], Remain[0.82m], score:4.591, aug_score:4.517
+[2026-03-24 22:39:30] CTSPd_Tester.py(94) : episode 73000/100000, Elapsed[2.13m], Remain[0.79m], score:4.569, aug_score:4.496
+[2026-03-24 22:39:32] CTSPd_Tester.py(94) : episode 74000/100000, Elapsed[2.16m], Remain[0.76m], score:4.570, aug_score:4.494
+[2026-03-24 22:39:34] CTSPd_Tester.py(94) : episode 75000/100000, Elapsed[2.19m], Remain[0.73m], score:4.574, aug_score:4.494
+[2026-03-24 22:39:36] CTSPd_Tester.py(94) : episode 76000/100000, Elapsed[2.22m], Remain[0.70m], score:4.552, aug_score:4.475
+[2026-03-24 22:39:38] CTSPd_Tester.py(94) : episode 77000/100000, Elapsed[2.25m], Remain[0.67m], score:4.562, aug_score:4.487
+[2026-03-24 22:39:39] CTSPd_Tester.py(94) : episode 78000/100000, Elapsed[2.28m], Remain[0.64m], score:4.593, aug_score:4.516
+[2026-03-24 22:39:41] CTSPd_Tester.py(94) : episode 79000/100000, Elapsed[2.31m], Remain[0.61m], score:4.555, aug_score:4.483
+[2026-03-24 22:39:43] CTSPd_Tester.py(94) : episode 80000/100000, Elapsed[2.34m], Remain[0.58m], score:4.580, aug_score:4.504
+[2026-03-24 22:39:45] CTSPd_Tester.py(94) : episode 81000/100000, Elapsed[2.37m], Remain[0.56m], score:4.549, aug_score:4.474
+[2026-03-24 22:39:46] CTSPd_Tester.py(94) : episode 82000/100000, Elapsed[2.40m], Remain[0.53m], score:4.573, aug_score:4.494
+[2026-03-24 22:39:48] CTSPd_Tester.py(94) : episode 83000/100000, Elapsed[2.43m], Remain[0.50m], score:4.567, aug_score:4.492
+[2026-03-24 22:39:50] CTSPd_Tester.py(94) : episode 84000/100000, Elapsed[2.46m], Remain[0.47m], score:4.559, aug_score:4.485
+[2026-03-24 22:39:52] CTSPd_Tester.py(94) : episode 85000/100000, Elapsed[2.49m], Remain[0.44m], score:4.554, aug_score:4.480
+[2026-03-24 22:39:53] CTSPd_Tester.py(94) : episode 86000/100000, Elapsed[2.51m], Remain[0.41m], score:4.587, aug_score:4.513
+[2026-03-24 22:39:55] CTSPd_Tester.py(94) : episode 87000/100000, Elapsed[2.54m], Remain[0.38m], score:4.587, aug_score:4.509
+[2026-03-24 22:39:57] CTSPd_Tester.py(94) : episode 88000/100000, Elapsed[2.57m], Remain[0.35m], score:4.550, aug_score:4.475
+[2026-03-24 22:39:59] CTSPd_Tester.py(94) : episode 89000/100000, Elapsed[2.60m], Remain[0.32m], score:4.597, aug_score:4.515
+[2026-03-24 22:40:00] CTSPd_Tester.py(94) : episode 90000/100000, Elapsed[2.63m], Remain[0.29m], score:4.561, aug_score:4.485
+[2026-03-24 22:40:02] CTSPd_Tester.py(94) : episode 91000/100000, Elapsed[2.66m], Remain[0.26m], score:4.572, aug_score:4.499
+[2026-03-24 22:40:04] CTSPd_Tester.py(94) : episode 92000/100000, Elapsed[2.69m], Remain[0.23m], score:4.575, aug_score:4.497
+[2026-03-24 22:40:06] CTSPd_Tester.py(94) : episode 93000/100000, Elapsed[2.72m], Remain[0.20m], score:4.580, aug_score:4.501
+[2026-03-24 22:40:07] CTSPd_Tester.py(94) : episode 94000/100000, Elapsed[2.75m], Remain[0.18m], score:4.562, aug_score:4.489
+[2026-03-24 22:40:09] CTSPd_Tester.py(94) : episode 95000/100000, Elapsed[2.78m], Remain[0.15m], score:4.577, aug_score:4.497
+[2026-03-24 22:40:11] CTSPd_Tester.py(94) : episode 96000/100000, Elapsed[2.81m], Remain[0.12m], score:4.570, aug_score:4.493
+[2026-03-24 22:40:13] CTSPd_Tester.py(94) : episode 97000/100000, Elapsed[2.84m], Remain[0.09m], score:4.565, aug_score:4.487
+[2026-03-24 22:40:15] CTSPd_Tester.py(94) : episode 98000/100000, Elapsed[2.87m], Remain[0.06m], score:4.578, aug_score:4.502
+[2026-03-24 22:40:16] CTSPd_Tester.py(94) : episode 99000/100000, Elapsed[2.90m], Remain[0.03m], score:4.576, aug_score:4.498
+[2026-03-24 22:40:18] CTSPd_Tester.py(94) : episode 100000/100000, Elapsed[2.93m], Remain[0.00m], score:4.558, aug_score:4.486
+[2026-03-24 22:40:18] CTSPd_Tester.py(100) :  *** Test Done *** 
+[2026-03-24 22:40:18] CTSPd_Tester.py(101) :  NO-AUG SCORE: 4.5673 
+[2026-03-24 22:40:18] CTSPd_Tester.py(102) :  AUGMENTATION SCORE: 4.4915 

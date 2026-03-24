@@ -59,63 +59,26 @@ class CTSPdEnv:
         self.visited_mask = None      # shape: (batch, pomo, node), bool
         self.current_min_priority = None  # shape: (batch, pomo), 当前未访问节点中的最高优先级
 
-    def load_problems(self, batch_size, aug_factor=1, problems=None):
-        """
-        加载问题数据
-        Args:
-            batch_size: 批次大小
-            aug_factor: 数据增强倍数（1或8）
-            problems: 可选，外部传入的 (batch, node, 3) 数据，用于测试
-        """
-        if problems is None:
-            # 训练模式：随机生成
-            self.batch_size = batch_size
-            self.problems = get_random_problems(batch_size, self.problem_size, self.num_groups)
-        else:
-            # 测试模式：使用传入的数据
-            self.problems = problems
-            self.batch_size = problems.size(0)
-        
-        # 数据增强
+    def load_problems(self, batch_size, aug_factor=1):
+        self.batch_size = batch_size
+
+        # CHANGE: 传入num_groups参数，接收3维张量 (batch, problem, 3)
+        self.problems = get_random_problems(batch_size, self.problem_size, self.num_groups)
+        # problems.shape: (batch, problem, 3)
         if aug_factor > 1:
             if aug_factor == 8:
                 self.batch_size = self.batch_size * 8
                 self.problems = augment_xy_data_by_8_fold(self.problems)
+                # shape: (8*batch, problem, 2)
             else:
                 raise NotImplementedError
         
-        # 分离坐标和优先级
-        self.node_xy = self.problems[:, :, :2]
-        self.node_priorities = self.problems[:, :, 2]
-        
-        # 初始化索引
+        # CHANGE: 分离坐标和优先级，供后续使用
+        self.node_xy = self.problems[:, :, :2]        # (batch, node, 2)
+        self.node_priorities = self.problems[:, :, 2]  # (batch, node)
+
         self.BATCH_IDX = torch.arange(self.batch_size)[:, None].expand(self.batch_size, self.pomo_size)
         self.POMO_IDX = torch.arange(self.pomo_size)[None, :].expand(self.batch_size, self.pomo_size)
-
-    def load_problems_from_file(self, problems_tensor, d):
-        """
-        从文件加载的数据初始化环境（用于测试）
-        
-        Args:
-            problems_tensor: (batch=1, problem, 3) 包含归一化坐标和优先级
-            d: 松弛度
-        """
-        self.batch_size = 1
-        self.problems = problems_tensor
-        self.node_xy = self.problems[:, :, :2]        # (1, n, 2)
-        self.node_priorities = self.problems[:, :, 2]  # (1, n)
-        self.d = d
-        
-        # 重新初始化索引
-        self.BATCH_IDX = torch.arange(self.batch_size)[:, None].expand(self.batch_size, self.pomo_size)
-        self.POMO_IDX = torch.arange(self.pomo_size)[None, :].expand(self.batch_size, self.pomo_size)
-
-    def get_current_tour(self):
-        """
-        获取当前已选择的节点访问顺序
-        用于测试时记录路径
-        """
-        return self.selected_node_list[0, 0].cpu().numpy().tolist()  # 返回第一个batch第一个pomo的路径
 
     def reset(self):
         self.selected_count = 0
