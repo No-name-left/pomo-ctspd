@@ -4,8 +4,8 @@ import torch
 import os
 from logging import getLogger
 
-from CTSPd_Env import TSPEnv as Env
-from TSPModel import TSPModel as Model
+from CTSPd_Env import CTSPdEnv as Env
+from CSTPd.POMO.CTSPd_Model import TSPModel as Model
 
 from utils.utils import *
 

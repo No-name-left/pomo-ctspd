@@ -64,15 +64,15 @@ optimizer_params = {
 trainer_params = {
     'use_cuda': USE_CUDA,
     'cuda_device_num': CUDA_DEVICE_NUM,
-    'epochs': 200,
-    'train_episodes': 100 * 1000,
-    'train_batch_size': 256,
+    'epochs': 20,
+    'train_episodes': 100 * 100,
+    'train_batch_size': 64,
     'logging': {
-        'model_save_interval': 50,
-        'img_save_interval': 50,
+        'model_save_interval': 5,
+        'img_save_interval': 10,
         'log_image_params_1': {
             'json_foldername': 'log_image_style',
-            'filename': 'style_tsp_20.json'
+            'filename': 'style_ctspd_20.json'
         },
         'log_image_params_2': {
             'json_foldername': 'log_image_style',
@@ -81,7 +81,7 @@ trainer_params = {
     },
     'model_load': {
         'enable': False,  # enable loading pre-trained model
-        # 'path': './result/saved_tsp20_model',  # directory path of pre-trained model and log files saved.
+        # 'path': './result/saved_ctspd20_model',  # directory path of pre-trained model and log files saved.
         # 'epoch': 510,  # epoch version of pre-trained model to laod.
 
     }
@@ -89,7 +89,7 @@ trainer_params = {
 
 logger_params = {
     'log_file': {
-        'desc': 'train__tsp_n20',
+        'desc': 'train__ctspd_n20',
         'filename': 'run_log'
     }
 }
