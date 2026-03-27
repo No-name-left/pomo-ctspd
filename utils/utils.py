@@ -246,8 +246,24 @@ def util_save_log_image_with_label(result_file_prefix,
 
     _build_log_image_plt(img_params, result_log, labels)
 
+    # 修复Y轴范围：根据实际数据动态调整，避免CTSP-d数据被截断
     if labels is None:
         labels = result_log.get_keys()
+    
+    raw_data = result_log.get_raw_data()
+    all_values = []
+    for label in labels:
+        if label in raw_data and len(raw_data[label]) > 0:
+            all_values.extend(raw_data[label])
+    
+    if all_values:
+        ax = plt.gca()
+        y_min, y_max = min(all_values), max(all_values)
+        margin = (y_max - y_min) * 0.15
+        ax.set_ylim(y_min - margin, y_max + margin)
+    
+ 
+    plt.tight_layout()
     file_name = '_'.join(labels)
     fig = plt.gcf()
     fig.savefig('{}-{}.jpg'.format(result_file_prefix, file_name))
@@ -273,51 +289,50 @@ def _build_log_image_plt(img_params,
     if labels is None:
         labels = result_log.get_keys()
     
-    # 关键修改1：判断是否是 Loss 图（用于后续特殊处理）
     is_loss_plot = any('loss' in label.lower() for label in labels)
     is_score_plot = any('score' in label.lower() for label in labels)
     
     for label in labels:
-        plt.plot(*result_log.getXY(label), label=label, linewidth=2.5)  # 加粗线条
+        plt.plot(*result_log.getXY(label), label=label, linewidth=2.5)
 
-    ylim_min = config['ylim']['min']
-    ylim_max = config['ylim']['max']
-    if ylim_min is None:
-        ylim_min = plt.gca().dataLim.ymin
-    if ylim_max is None:
-        ylim_max = plt.gca().dataLim.ymax
-    plt.ylim(ylim_min, ylim_max)
+    # 动态计算Y轴范围，避免CTSP-d数据（~4.6）被硬编码的3.83-3.88截断
+    ax = plt.gca()
+    ymin, ymax = ax.dataLim.ymin, ax.dataLim.ymax
+    
+    # 添加15%边距确保曲线不贴边
+    if ymin != ymax:
+        margin = (ymax - ymin) * 0.15
+    else:
+        margin = abs(ymin) * 0.1 if ymin != 0 else 0.1
+    
+    # 使用数据实际范围覆盖配置文件中的硬编码值
+    plt.ylim(ymin - margin, ymax + margin)
 
+    # X轴范围保持原有逻辑（通常自动适应即可）
     xlim_min = config['xlim']['min']
     xlim_max = config['xlim']['max']
     if xlim_min is None:
-        xlim_min = plt.gca().dataLim.xmin
+        xlim_min = ax.dataLim.xmin
     if xlim_max is None:
-        xlim_max = plt.gca().dataLim.xmax
+        xlim_max = ax.dataLim.xmax
     plt.xlim(xlim_min, xlim_max)
 
-    # 关键修改2：缩小 legend 字体（从 18 改为 10）
     plt.rc('legend', **{'fontsize': 10})
     plt.legend(loc='best', frameon=True, fancybox=True, shadow=True)
     
-    # 关键修改3：添加坐标轴标题
     plt.xlabel('Epoch', fontsize=12, fontweight='bold')
     
-    # 关键修改4：根据图表类型设置 Y 轴标题，并反转 Loss 的 Y 轴
     if is_loss_plot:
         plt.ylabel('Policy Gradient Loss', fontsize=12, fontweight='bold')
-        # 关键修改5：反转 Y 轴，让 Loss 绝对值减小显示为"下降"
-        # 注意：要在设置 ylim 之后反转，否则会被覆盖
+        # 在设置ylim之后反转，确保反转的是正确的范围
         plt.gca().invert_yaxis()
     elif is_score_plot:
         plt.ylabel('Average Tour Length', fontsize=12, fontweight='bold')
-        # Score 不需要反转，越小越好，自然向下
     else:
         plt.ylabel('Value', fontsize=12, fontweight='bold')
     
-    plt.grid(config["grid"], alpha=0.3, linestyle='--')  # 美化网格
+    plt.grid(config["grid"], alpha=0.3, linestyle='--')
     
-    # 添加标题（可选）
     if is_loss_plot:
         plt.title('POMO Training Loss Curve', fontsize=14, fontweight='bold', pad=15)
     elif is_score_plot:
