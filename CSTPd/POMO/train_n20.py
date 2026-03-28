@@ -64,12 +64,12 @@ optimizer_params = {
 trainer_params = {
     'use_cuda': USE_CUDA,
     'cuda_device_num': CUDA_DEVICE_NUM,
-    'epochs': 20,
-    'train_episodes': 100 * 100,
-    'train_batch_size': 64,
+    'epochs': 200,
+    'train_episodes': 100 * 1000,
+    'train_batch_size': 512,
     'logging': {
-        'model_save_interval': 5,
-        'img_save_interval': 10,
+        'model_save_interval': 40,
+        'img_save_interval': 20,
         'log_image_params_1': {
             'json_foldername': 'log_image_style',
             'filename': 'style_ctspd_20.json'
