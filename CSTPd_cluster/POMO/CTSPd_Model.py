@@ -87,20 +87,39 @@ class CTSPd_Encoder(nn.Module):
         self.model_params = model_params
         embedding_dim = self.model_params['embedding_dim']
         encoder_layer_num = self.model_params['encoder_layer_num']
+        num_groups = self.model_params.get('num_groups', 5)  # 从 env_params 传入，5是安全设置值
 
-        self.embedding = nn.Linear(3, embedding_dim)
+        self.coord_embedding = nn.Linear(2, embedding_dim)
+        # 新增：聚类感知嵌入（可学习的组嵌入表）
+        # 为每个优先级组（1~num_groups）学习一个嵌入向量
+        self.group_embedding = nn.Embedding(num_groups + 1, embedding_dim) # +1 因为优先级是 1-based，索引0保留给padding/depot
+        
+        # 新增：融合层（将节点特征与组特征融合）
+        self.fusion = nn.Linear(embedding_dim * 2, embedding_dim)
+
         self.layers = nn.ModuleList([EncoderLayer(**model_params) for _ in range(encoder_layer_num)])
 
     def forward(self, data):
-        # data.shape: (batch, problem, 2)
-
-        embedded_input = self.embedding(data)
-        # shape: (batch, problem, embedding)
-
+    # data: (batch, problem, 3) = [x, y, priority]
+        batch_size, problem_size, _ = data.size()
+        
+        # 提取组ID（用于传给EncoderLayer）
+        group_ids = data[:, :, 2].long()  # (batch, problem)
+        
+        # 分离坐标并嵌入
+        coords = data[:, :, :2]                           # (batch, problem, 2)
+        coord_feat = self.coord_embedding(coords)         # (batch, problem, embed)
+        group_feat = self.group_embedding(group_ids)      # (batch, problem, embed)
+        
+        # 融合
+        combined = torch.cat([coord_feat, group_feat], dim=-1)  # (batch, problem, embed*2)
+        embedded_input = self.fusion(combined)                  # (batch, problem, embed)
+        
+        # 通过Transformer层，传递group_ids
         out = embedded_input
         for layer in self.layers:
-            out = layer(out)
-
+            out = layer(out, group_ids=group_ids)
+        
         return out
 
 
@@ -121,7 +140,7 @@ class EncoderLayer(nn.Module):
         self.feedForward = Feed_Forward_Module(**model_params)
         self.addAndNormalization2 = Add_And_Normalization_Module(**model_params)
 
-    def forward(self, input1):
+    def forward(self, input1, group_ids=None):
         # input.shape: (batch, problem, EMBEDDING_DIM)
         head_num = self.model_params['head_num']
 
@@ -130,7 +149,21 @@ class EncoderLayer(nn.Module):
         v = reshape_by_heads(self.Wv(input1), head_num=head_num)
         # q shape: (batch, HEAD_NUM, problem, KEY_DIM)
 
-        out_concat = multi_head_attention(q, k, v)
+        # 计算聚类感知偏置（如果提供了组ID）
+        attention_bias = None
+        if group_ids is not None:
+            # group_ids: (batch, problem)，值为 1, 2, 3... 表示优先级组
+            g_i = group_ids.unsqueeze(1).unsqueeze(3)  # (batch, 1, problem, 1)
+            g_j = group_ids.unsqueeze(1).unsqueeze(2)  # (batch, 1, 1, problem)
+            
+            # 同组为1，不同组为0
+            same_group_mask = (g_i == g_j).float()  # (batch, 1, problem, problem)
+            
+            # 同组注意力加分（可学习的系数，这里简化为固定值0.5）
+            attention_bias = same_group_mask * 0.5
+
+        # 传入multi_head_attention
+        out_concat = multi_head_attention(q, k, v, group_bias=attention_bias)
         # shape: (batch, problem, HEAD_NUM*KEY_DIM)
 
         multi_head_out = self.multi_head_combine(out_concat)
@@ -139,6 +172,8 @@ class EncoderLayer(nn.Module):
         out1 = self.addAndNormalization1(input1, multi_head_out)
         out2 = self.feedForward(out1)
         out3 = self.addAndNormalization2(out1, out2)
+
+        
 
         return out3
         # shape: (batch, problem, EMBEDDING_DIM)
@@ -245,7 +280,7 @@ def reshape_by_heads(qkv, head_num):
     return q_transposed
 
 
-def multi_head_attention(q, k, v, rank2_ninf_mask=None, rank3_ninf_mask=None):
+def multi_head_attention(q, k, v, rank2_ninf_mask=None, rank3_ninf_mask=None, group_bias=None):
     # q shape: (batch, head_num, n, key_dim)   : n can be either 1 or PROBLEM_SIZE
     # k,v shape: (batch, head_num, problem, key_dim)
     # rank2_ninf_mask.shape: (batch, problem)
@@ -255,13 +290,17 @@ def multi_head_attention(q, k, v, rank2_ninf_mask=None, rank3_ninf_mask=None):
     head_num = q.size(1)
     n = q.size(2)
     key_dim = q.size(3)
-
     input_s = k.size(2)
 
     score = torch.matmul(q, k.transpose(2, 3))
     # shape: (batch, head_num, n, problem)
 
     score_scaled = score / torch.sqrt(torch.tensor(key_dim, dtype=torch.float))
+    # 新增：应用聚类感知偏置（在softmax之前）
+    if group_bias is not None:
+        # group_bias: (batch, 1, problem, problem) 或兼容形状
+        # 广播到所有头：(batch, head_num, n, problem)
+        score_scaled = score_scaled + group_bias
     if rank2_ninf_mask is not None:
         score_scaled = score_scaled + rank2_ninf_mask[:, None, None, :].expand(batch_s, head_num, n, input_s)
     if rank3_ninf_mask is not None:

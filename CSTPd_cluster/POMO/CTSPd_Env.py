@@ -31,7 +31,7 @@ class CTSPdEnv:
         self.problem_size = env_params['problem_size']
         self.pomo_size = env_params['pomo_size']
          # CHANGE: 新增CTSP-d参数读取
-        self.num_groups = env_params.get('num_groups', 3)  # 优先级组数
+        self.num_groups = env_params.get('num_groups', 5)  # 优先级组数
         self.d = env_params.get('relaxation_d', 1)         # 松弛度d
 
         # Const @Load_Problem
@@ -137,6 +137,7 @@ class CTSPdEnv:
         self.step_state.ninf_mask = torch.zeros((self.batch_size, self.pomo_size, self.problem_size))
         # CHANGE: 新增 - 应用d-松弛优先级规则（覆盖上面的零张量，屏蔽不符合优先级范围的节点）
         self._apply_priority_mask()
+        self.group_ids = self.node_priorities.long()  # (batch, problem)，用于传入模型
 
         reward = None
         done = False
@@ -175,7 +176,7 @@ class CTSPdEnv:
             # 在未访问节点中找最小值（即最高优先级）
             self.current_min_priority = expanded_priorities.min(dim=2)[0]  # (batch, pomo)
 
-         # CHANGE: 更新Step_State中的current_min_priority（可选）
+         # CHANGE: 更新Step_State中的current_min_priority
         if hasattr(self.step_state, 'current_min_priority'):
             self.step_state.current_min_priority = self.current_min_priority
         

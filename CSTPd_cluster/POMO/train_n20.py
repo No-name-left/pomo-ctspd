@@ -28,7 +28,9 @@ sys.path.insert(0, "../..")  # for utils
 import logging
 from utils.utils import create_logger, copy_all_src
 
-from TSPTrainer import TSPTrainer as Trainer
+from CTSPd_Trainer import TSPTrainer as Trainer
+from CTSPd_Env import CTSPdEnv as Env
+from CTSPd_Model import CTSPdModel as Model
 
 
 ##########################################################################################
@@ -37,6 +39,8 @@ from TSPTrainer import TSPTrainer as Trainer
 env_params = {
     'problem_size': 20,
     'pomo_size': 20,
+    'num_groups': 8,
+    'relaxation_d': 1,
 }
 
 model_params = {
@@ -47,6 +51,7 @@ model_params = {
     'head_num': 8,
     'logit_clipping': 10,
     'ff_hidden_dim': 512,
+    'num_groups': 8,
     'eval_type': 'argmax',
 }
 
@@ -96,6 +101,8 @@ logger_params = {
 
 ##########################################################################################
 # main
+import torch
+import torch.nn as nn
 
 def main():
     if DEBUG_MODE:
@@ -103,6 +110,18 @@ def main():
 
     create_logger(**logger_params)
     _print_config()
+
+    # 临时创建对象进行检查
+    temp_env = Env(**env_params)
+    temp_model = Model(**model_params)
+    
+    if not check_setup(env_params, model_params, temp_model):
+        print(" 配置检查失败，停止训练")
+        print(f"请检查: num_groups 环境={env_params.get('num_groups')} vs 模型={model_params.get('num_groups')}")
+        return  # 直接退出，不创建 trainer
+    
+    print("配置检查通过")
+    # 【插入到这里结束】
 
     trainer = Trainer(env_params=env_params,
                       model_params=model_params,
@@ -113,6 +132,33 @@ def main():
 
     trainer.run()
 
+def check_setup(env_params, model_params, model):
+    """极简检查"""
+    print("\n=== 快速检查 ===")
+    
+    # 检查 num_groups 是否一致
+    ng_env = env_params.get('num_groups', 5)
+    ng_model = model_params.get('num_groups', 5)
+    
+    print(f"num_groups: 环境={ng_env}, 模型={ng_model}")
+    
+    if ng_env != ng_model:
+        print("错误: 不一致!会导致CUDA错误")
+        return False
+    
+    # 检查聚类模块
+    has_cluster = hasattr(model.encoder, 'group_embedding')
+    print(f"聚类模块: {'✓' if has_cluster else '✗'}")
+    
+    if has_cluster:
+        size = model.encoder.group_embedding.num_embeddings
+        print(f"支持组数: {size-1} (索引1-{size-1})")
+        if size < ng_env + 1:
+            print(f"错误: Embedding太小({size})，需要{ng_env+1}")
+            return False
+    
+    print("================\n")
+    return True
 
 def _set_debug_mode():
     global trainer_params

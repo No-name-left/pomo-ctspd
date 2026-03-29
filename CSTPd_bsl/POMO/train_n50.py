@@ -28,7 +28,7 @@ sys.path.insert(0, "../..")  # for utils
 import logging
 from utils.utils import create_logger, copy_all_src
 
-from TSPTrainer import TSPTrainer as Trainer
+from CSTPd_bsl.POMO.CTSPd_Trainer import TSPTrainer as Trainer
 
 
 ##########################################################################################

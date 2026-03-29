@@ -23,8 +23,8 @@ from sklearn.manifold import MDS  # pip install scikit-learn
 # ==========================================
 # TODO: 修改以下三个路径为你的实际路径
 # ==========================================
-MODEL_DIR = './result/20260327_201439_train__ctspd_n20'  # 模型文件夹路径
-INSTANCE_FILE = 'C:/Users/lenovo/Desktop/graduation assignment/CTSP-d(用于对照的最优结果)/INSTANCES/Random_small/swiss42-R-1-0-a.ctspd' # 测试文件路径
+MODEL_DIR = './result/20260329_195759_train__ctspd_n20'  # 模型文件夹路径
+INSTANCE_FILE = 'C:/Users/lenovo/Desktop/graduation assignment/CTSP-d(用于对照的最优结果)/INSTANCES/Random_small/swiss42-R-3-2-b.ctspd' # 测试文件路径
 CHECKPOINT_EPOCH = 200                                    # 使用第几轮模型
 
 def load_ctspd_simple(filepath):

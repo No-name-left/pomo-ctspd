@@ -28,7 +28,7 @@ sys.path.insert(0, "../..")  # for utils
 import logging
 from utils.utils import create_logger, copy_all_src
 
-from TSPTrainer import TSPTrainer as Trainer
+from CSTPd_bsl.POMO.CTSPd_Trainer import TSPTrainer as Trainer
 
 
 ##########################################################################################
@@ -37,6 +37,8 @@ from TSPTrainer import TSPTrainer as Trainer
 env_params = {
     'problem_size': 20,
     'pomo_size': 20,
+    'num_groups': 8,
+    'relaxation_d': 0,
 }
 
 model_params = {
@@ -112,6 +114,7 @@ def main():
     copy_all_src(trainer.result_folder)
 
     trainer.run()
+
 
 
 def _set_debug_mode():

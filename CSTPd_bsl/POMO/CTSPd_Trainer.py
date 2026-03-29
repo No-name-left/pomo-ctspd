@@ -61,6 +61,8 @@ class TSPTrainer:
 
         # utility
         self.time_estimator = TimeEstimator()
+    
+        
 
     def run(self):
         self.time_estimator.reset(self.start_epoch)

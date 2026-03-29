@@ -1,0 +1,18 @@
+[2026-03-29 22:21:28] train_n100.py(121) : DEBUG_MODE: False
+[2026-03-29 22:21:28] train_n100.py(122) : USE_CUDA: True, CUDA_DEVICE_NUM: 0
+[2026-03-29 22:21:28] train_n100.py(123) : env_params{'problem_size': 100, 'pomo_size': 100}
+[2026-03-29 22:21:28] train_n100.py(123) : model_params{'embedding_dim': 128, 'sqrt_embedding_dim': 11.313708498984761, 'encoder_layer_num': 6, 'qkv_dim': 16, 'head_num': 8, 'logit_clipping': 10, 'ff_hidden_dim': 512, 'eval_type': 'argmax'}
+[2026-03-29 22:21:28] train_n100.py(123) : optimizer_params{'optimizer': {'lr': 0.0001, 'weight_decay': 1e-06}, 'scheduler': {'milestones': [3001], 'gamma': 0.1}}
+[2026-03-29 22:21:28] train_n100.py(123) : trainer_params{'use_cuda': True, 'cuda_device_num': 0, 'epochs': 3100, 'train_episodes': 100000, 'train_batch_size': 64, 'logging': {'model_save_interval': 100, 'img_save_interval': 100, 'log_image_params_1': {'json_foldername': 'log_image_style', 'filename': 'style_tsp_100.json'}, 'log_image_params_2': {'json_foldername': 'log_image_style', 'filename': 'style_loss_1.json'}}, 'model_load': {'enable': False}}
+[2026-03-29 22:21:28] train_n100.py(123) : logger_params{'log_file': {'desc': 'train__tsp_n100__3000epoch', 'filename': 'log.txt', 'filepath': './result/20260329_232124_train__tsp_n100__3000epoch'}}
+[2026-03-29 22:21:30] CTSPd_Trainer.py(68) : =================================================================
+[2026-03-29 22:21:31] CTSPd_Trainer.py(143) : Epoch   1: Train  64/100000(0.1%)  Score: 41.9009,  Loss: -9.8153
+[2026-03-29 22:21:32] CTSPd_Trainer.py(143) : Epoch   1: Train 128/100000(0.1%)  Score: 37.6285,  Loss: -9.3352
+[2026-03-29 22:21:32] CTSPd_Trainer.py(143) : Epoch   1: Train 192/100000(0.2%)  Score: 35.1973,  Loss: -8.3234
+[2026-03-29 22:21:33] CTSPd_Trainer.py(143) : Epoch   1: Train 256/100000(0.3%)  Score: 33.5270,  Loss: -7.7557
+[2026-03-29 22:21:34] CTSPd_Trainer.py(143) : Epoch   1: Train 320/100000(0.3%)  Score: 32.2653,  Loss: -7.3531
+[2026-03-29 22:21:34] CTSPd_Trainer.py(143) : Epoch   1: Train 384/100000(0.4%)  Score: 31.2051,  Loss: -7.1991
+[2026-03-29 22:21:35] CTSPd_Trainer.py(143) : Epoch   1: Train 448/100000(0.4%)  Score: 30.2919,  Loss: -7.1091
+[2026-03-29 22:21:35] CTSPd_Trainer.py(143) : Epoch   1: Train 512/100000(0.5%)  Score: 29.5048,  Loss: -7.0048
+[2026-03-29 22:21:36] CTSPd_Trainer.py(143) : Epoch   1: Train 576/100000(0.6%)  Score: 28.7508,  Loss: -6.9382
+[2026-03-29 22:21:37] CTSPd_Trainer.py(143) : Epoch   1: Train 640/100000(0.6%)  Score: 28.0871,  Loss: -6.8829
