@@ -1,0 +1,50 @@
+NAME : swiss42-R-3-0-b.2153.tour
+COMMENT : Length = 2153
+COMMENT : Found by LKH-3 [Keld Helsgaun] Tue Jul 30 13:14:22 2024
+TYPE : TOUR
+DIMENSION : 42
+TOUR_SECTION
+1
+2
+7
+19
+13
+14
+20
+8
+37
+36
+33
+31
+9
+25
+41
+42
+26
+30
+3
+5
+27
+17
+16
+18
+32
+34
+39
+23
+40
+22
+10
+24
+11
+12
+6
+15
+38
+21
+35
+29
+28
+4
+-1
+EOF
