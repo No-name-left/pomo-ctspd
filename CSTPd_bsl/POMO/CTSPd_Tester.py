@@ -1,14 +1,14 @@
 import torch
 import numpy as np
 import os
-import re
 import json
+from pathlib import Path
 from logging import getLogger
 from glob import glob
 
 from CTSPd_Env import CTSPdEnv as Env
 from CTSPd_Model import CTSPdModel as Model
-from CTSPd_ProblemDef import get_random_problems, augment_xy_data_by_8_fold
+from CTSPd_ProblemDef import get_random_problems, augment_xy_data_by_8_fold, parse_ctspd_file
 from utils.utils import *
 
 
@@ -16,7 +16,7 @@ class CTSPdTester:
     def __init__(self, env_params, model_params, tester_params):
         # save arguments
         self.env_params = env_params
-        self.model_params = model_params
+        self.model_params = dict(model_params)
         self.tester_params = tester_params
 
         # result folder, logger
@@ -29,20 +29,21 @@ class CTSPdTester:
             cuda_device_num = self.tester_params['cuda_device_num']
             torch.cuda.set_device(cuda_device_num)
             device = torch.device('cuda', cuda_device_num)
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
         else:
             device = torch.device('cpu')
-            torch.set_default_tensor_type('torch.FloatTensor')
+        torch.set_default_dtype(torch.float32)
+        torch.set_default_device(device)
         self.device = device
+
+        # Restore model
+        model_load = tester_params['model_load']
+        checkpoint_fullname = self._resolve_checkpoint_fullname(model_load)
+        checkpoint = torch.load(checkpoint_fullname, map_location=device)
+        self._sync_model_params_with_checkpoint(checkpoint['model_state_dict'])
 
         # ENV and MODEL
         self.env = Env(**self.env_params)
         self.model = Model(**self.model_params).to(device)
-
-        # Restore model
-        model_load = tester_params['model_load']
-        checkpoint_fullname = '{path}/checkpoint-{epoch}.pt'.format(**model_load)
-        checkpoint = torch.load(checkpoint_fullname, map_location=device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.logger.info(f'Model loaded from {checkpoint_fullname}')
 
@@ -56,6 +57,45 @@ class CTSPdTester:
             pattern = tester_params.get('test_file_pattern', '*.ctspd')
             self.test_files = sorted(glob(os.path.join(self.test_data_dir, pattern)))
             self.logger.info(f'Found {len(self.test_files)} test files in {self.test_data_dir}')
+
+    def _resolve_checkpoint_fullname(self, model_load):
+        checkpoint_name = f"checkpoint-{model_load['epoch']}.pt"
+        configured_path = Path(model_load['path']) / checkpoint_name
+        if configured_path.exists():
+            return str(configured_path)
+
+        search_root = Path(__file__).resolve().parent / 'result'
+        matches = sorted(
+            search_root.glob(f'**/{checkpoint_name}'),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        if matches:
+            fallback = matches[0]
+            self.logger.warning(
+                f"Configured checkpoint {configured_path} not found. "
+                f"Using latest matching checkpoint: {fallback}"
+            )
+            return str(fallback)
+
+        raise FileNotFoundError(
+            f"Could not find {checkpoint_name}. Checked configured path {configured_path} "
+            f"and searched under {search_root}."
+        )
+
+    def _sync_model_params_with_checkpoint(self, state_dict):
+        group_embedding_key = 'encoder.group_embedding.weight'
+        if group_embedding_key not in state_dict:
+            return
+
+        inferred_num_groups = state_dict[group_embedding_key].size(0) - 1
+        configured_num_groups = self.model_params.get('num_groups')
+        if configured_num_groups != inferred_num_groups:
+            self.logger.info(
+                f"Adjusting model num_groups from {configured_num_groups} "
+                f"to checkpoint value {inferred_num_groups}"
+            )
+            self.model_params['num_groups'] = inferred_num_groups
 
     def run(self):
         """Main test loop - compatible with original test_n20.py"""
@@ -130,8 +170,15 @@ class CTSPdTester:
     def _test_single_file(self, filepath):
         """Test single .ctspd file"""
         # Parse file
-        problems, raw_dist_matrix, d, num_groups = self._load_ctspd_file(filepath)
+        problems, raw_dist_matrix, d, num_groups = parse_ctspd_file(filepath)
         n_nodes = problems.size(1)
+
+        model_num_groups = self.model_params.get('num_groups')
+        if model_num_groups is not None and num_groups > model_num_groups:
+            raise ValueError(
+                f"Instance uses {num_groups} groups, but the loaded model supports "
+                f"only {model_num_groups} groups."
+            )
         
         # Update env params dynamically
         env_params = self.env_params.copy()
@@ -143,17 +190,22 @@ class CTSPdTester:
         # Create temporary env with correct size
         env = Env(**env_params)
         
-        # Test with and without augmentation
-        aug_factor = self.tester_params.get('aug_factor', 8) if self.tester_params.get('augmentation_enable', False) else 1
+        # File-based CTSP-d instances only provide a distance matrix. The 2D coordinates are
+        # reconstructed features, so geometric augmentation is not length-preserving here.
+        requested_aug_factor = self.tester_params.get('aug_factor', 8) if self.tester_params.get('augmentation_enable', False) else 1
+        aug_factor = 1
+        if requested_aug_factor != 1 and not getattr(self, '_file_aug_warning_emitted', False):
+            self.logger.warning(
+                'Disabling geometric augmentation for file-based CTSP-d instances because '
+                'the reconstructed 2D features do not preserve the original distance matrix.'
+            )
+            self._file_aug_warning_emitted = True
         
         # Move data to device
         problems = problems.to(self.device)
         raw_dist_matrix = raw_dist_matrix.to(self.device)
-        
-        if aug_factor > 1:
-            problems = augment_xy_data_by_8_fold(problems)
-        
-        # Load problems
+
+        # Load problems. Env handles augmentation internally.
         env.load_problems(1, aug_factor=aug_factor, problems=problems)
         
         # Inference
@@ -183,19 +235,9 @@ class CTSPdTester:
         else:
             inference_time = time.time() - t0
         
-        # Get tour and calculate real length
-        tour = self._get_tour_from_env(env, aug_factor)
-        
-        # Calculate real path length using original distance matrix
-        if aug_factor == 1:
-            real_length = self._calculate_real_length(tour, raw_dist_matrix)
-            best_length = real_length
-        else:
-            # For augmentation, calculate length for each augmented version
-            # Simplified: just use the best reward index
-            best_idx = reward.argmax().item()
-            best_tour = tour[best_idx] if isinstance(tour, list) else tour
-            best_length = self._calculate_real_length(best_tour, raw_dist_matrix)
+        best_tour, best_batch_idx, best_pomo_idx = self._get_best_tour(env, reward)
+        best_length = self._calculate_real_length(best_tour, raw_dist_matrix)
+        predicted_length = -reward[best_batch_idx, best_pomo_idx].item()
         
         return {
             'filename': os.path.basename(filepath),
@@ -203,7 +245,9 @@ class CTSPdTester:
             'd': d,
             'real_length': best_length,
             'time': inference_time,
-            'predicted_length': -reward.max().item()
+            'predicted_length': predicted_length,
+            'best_aug_index': best_batch_idx,
+            'best_pomo_index': best_pomo_idx,
         }
 
     def _test_one_batch(self, batch_size):
@@ -250,67 +294,15 @@ class CTSPdTester:
 
     def _load_ctspd_file(self, filename):
         """Load .ctspd file and return problems tensor, distance matrix, d, num_groups"""
-        with open(filename, 'r') as f:
-            content = f.read()
-        
-        # Parse header
-        dimension = int(re.search(r'DIMENSION\s*:\s*(\d+)', content).group(1))
-        num_groups = int(re.search(r'GROUPS\s*:\s*(\d+)', content).group(1))
-        relaxation_d = int(re.search(r'RELAXATION_LEVEL\s*:\s*(\d+)', content).group(1))
-        
-        # Parse distance matrix
-        matrix_section = re.search(r'EDGE_WEIGHT_SECTION\s*\n(.*?)\n\s*(?:GROUP_SECTION|EOF)', 
-                                   content, re.DOTALL)
-        matrix_values = list(map(float, matrix_section.group(1).split()))
-        
-        dist_matrix = torch.zeros((dimension, dimension))
-        idx = 0
-        for i in range(dimension):
-            for j in range(i+1, dimension):
-                dist_matrix[i, j] = matrix_values[idx]
-                dist_matrix[j, i] = matrix_values[idx]
-                idx += 1
-        
-        # MDS to coordinates
-        from sklearn.manifold import MDS
-        mds = MDS(n_components=2, dissimilarity='precomputed', random_state=42, normalized_stress=False)
-        coords = mds.fit_transform(dist_matrix.numpy())
-        
-        # Normalize to [0, 1]
-        coords = (coords - coords.min(axis=0)) / (coords.max(axis=0) - coords.min(axis=0) + 1e-8)
-        
-        # Parse priorities
-        priorities = torch.ones(dimension)
-        group_section = re.search(r'GROUP_SECTION\s*\n(.*?)\n\s*EOF', content, re.DOTALL)
-        if group_section:
-            lines = group_section.group(1).strip().split('\n')
-            for line in lines:
-                parts = list(map(int, line.split()))
-                if len(parts) >= 2 and parts[0] != -1:
-                    group_id = parts[0]
-                    nodes = parts[1:-1] if parts[-1] == -1 else parts[1:]
-                    for node_idx in nodes:
-                        if 1 <= node_idx <= dimension:
-                            priorities[node_idx - 1] = float(group_id)
-        
-        # Create problems tensor (batch=1, node, 3)
-        problems = torch.zeros(1, dimension, 3)
-        problems[0, :, :2] = torch.from_numpy(coords).float()
-        problems[0, :, 2] = priorities
-        
-        return problems, dist_matrix, relaxation_d, num_groups
+        return parse_ctspd_file(filename)
 
-    def _get_tour_from_env(self, env, aug_factor):
-        """Extract tour from environment"""
-        # Get selected_node_list from env
-        # Shape: (batch * aug_factor, pomo, problem) or similar
-        tours = env.selected_node_list.cpu().numpy()
-        
-        if aug_factor == 1:
-            return tours[0, 0].tolist()  # First batch, first pomo
-        else:
-            # Return list of tours for each augmentation
-            return [tours[i, 0].tolist() for i in range(tours.shape[0])]
+    def _get_best_tour(self, env, reward):
+        best_flat_idx = reward.argmax().item()
+        pomo_size = reward.size(1)
+        best_batch_idx = best_flat_idx // pomo_size
+        best_pomo_idx = best_flat_idx % pomo_size
+        best_tour = env.selected_node_list[best_batch_idx, best_pomo_idx].cpu().tolist()
+        return best_tour, best_batch_idx, best_pomo_idx
     
     def _calculate_real_length(self, tour, dist_matrix):
         """Calculate tour length using original distance matrix"""
