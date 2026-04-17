@@ -36,6 +36,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 import shutil
+from typing import Any, Optional
 
 process_start_time = datetime.now(pytz.timezone("Asia/Seoul"))
 result_folder = './result/' + process_start_time.strftime("%Y%m%d_%H%M%S") + '{desc}'
@@ -50,24 +51,26 @@ def set_result_folder(folder):
     result_folder = folder
 
 
-def create_logger(log_file=None):
-    if 'filepath' not in log_file:
-        log_file['filepath'] = get_result_folder()
+def create_logger(log_file: Optional[dict[str, Any]] = None):
+    log_config = {} if log_file is None else dict(log_file)
 
-    if 'desc' in log_file:
-        log_file['filepath'] = log_file['filepath'].format(desc='_' + log_file['desc'])
+    if 'filepath' not in log_config:
+        log_config['filepath'] = get_result_folder()
+
+    if 'desc' in log_config:
+        log_config['filepath'] = log_config['filepath'].format(desc='_' + log_config['desc'])
     else:
-        log_file['filepath'] = log_file['filepath'].format(desc='')
+        log_config['filepath'] = log_config['filepath'].format(desc='')
 
-    set_result_folder(log_file['filepath'])
+    set_result_folder(log_config['filepath'])
 
-    if 'filename' in log_file:
-        filename = log_file['filepath'] + '/' + log_file['filename']
+    if 'filename' in log_config:
+        filename = log_config['filepath'] + '/' + log_config['filename']
     else:
-        filename = log_file['filepath'] + '/' + 'log.txt'
+        filename = log_config['filepath'] + '/' + 'log.txt'
 
-    if not os.path.exists(log_file['filepath']):
-        os.makedirs(log_file['filepath'])
+    if not os.path.exists(log_config['filepath']):
+        os.makedirs(log_config['filepath'])
 
     file_mode = 'a' if os.path.isfile(filename)  else 'w'
 
@@ -96,12 +99,12 @@ class AverageMeter:
         self.reset()
 
     def reset(self):
-        self.sum = 0
+        self.sum = 0.0
         self.count = 0
 
     def update(self, val, n=1):
-        self.sum += (val * n)
-        self.count += n
+        self.sum += float(val) * int(n)
+        self.count += int(n)
 
     @property
     def avg(self):
@@ -110,8 +113,8 @@ class AverageMeter:
 
 class LogData:
     def __init__(self):
-        self.keys = set()
-        self.data = {}
+        self.keys: set[str] = set()
+        self.data: dict[str, list[list[Any]]] = {}
 
     def get_raw_data(self):
         return self.keys, self.data
@@ -127,10 +130,11 @@ class LogData:
         else:
             raise ValueError('Unsupported value type')
 
+        rows = np.stack(value, axis=1).tolist()
         if key in self.keys:
-            self.data[key].extend(value)
+            self.data[key].extend(rows)
         else:
-            self.data[key] = np.stack(value, axis=1).tolist()
+            self.data[key] = rows
             self.keys.add(key)
 
     def append(self, key, *args):
@@ -142,9 +146,9 @@ class LogData:
                     value = [len(self.data[key]), args]
                 else:
                     value = [0, args]
-            elif type(args) == tuple:
+            elif isinstance(args, tuple):
                 value = list(args)
-            elif type(args) == list:
+            elif isinstance(args, list):
                 value = args
             else:
                 raise ValueError('Unsupported value type')
@@ -178,7 +182,7 @@ class LogData:
         xs = split[0].squeeze().tolist()
         ys = split[1].squeeze().tolist()
 
-        if type(xs) is not list:
+        if not isinstance(xs, list):
             return xs, ys
 
         if start_idx == 0:
@@ -230,7 +234,7 @@ class TimeEstimator:
 
 
 def util_print_log_array(logger, result_log: LogData):
-    assert type(result_log) == LogData, 'use LogData Class for result_log.'
+    assert isinstance(result_log, LogData), 'use LogData Class for result_log.'
 
     for key in result_log.get_keys():
         logger.info('{} = {}'.format(key+'_list', result_log.get(key)))
@@ -248,13 +252,20 @@ def util_save_log_image_with_label(result_file_prefix,
 
     # 修复Y轴范围：根据实际数据动态调整，避免CTSP-d数据被截断
     if labels is None:
-        labels = result_log.get_keys()
+        label_list = list(result_log.get_keys())
+    else:
+        label_list = list(labels)
     
-    raw_data = result_log.get_raw_data()
     all_values = []
-    for label in labels:
-        if label in raw_data and len(raw_data[label]) > 0:
-            all_values.extend(raw_data[label])
+    for label in label_list:
+        if not result_log.has_key(label):
+            continue
+
+        values = result_log.get(label)
+        if isinstance(values, list):
+            all_values.extend(float(value) for value in values)
+        else:
+            all_values.append(float(values))
     
     if all_values:
         ax = plt.gca()
@@ -264,7 +275,7 @@ def util_save_log_image_with_label(result_file_prefix,
     
  
     plt.tight_layout()
-    file_name = '_'.join(labels)
+    file_name = '_'.join(label_list)
     fig = plt.gcf()
     fig.savefig('{}-{}.jpg'.format(result_file_prefix, file_name))
     plt.close(fig)
@@ -273,7 +284,7 @@ def util_save_log_image_with_label(result_file_prefix,
 def _build_log_image_plt(img_params,
                          result_log: LogData,
                          labels=None):
-    assert type(result_log) == LogData, 'use LogData Class for result_log.'
+    assert isinstance(result_log, LogData), 'use LogData Class for result_log.'
 
     # Read json
     folder_name = img_params['json_foldername']
@@ -287,12 +298,14 @@ def _build_log_image_plt(img_params,
     plt.figure(figsize=figsize)
 
     if labels is None:
-        labels = result_log.get_keys()
+        label_list = list(result_log.get_keys())
+    else:
+        label_list = list(labels)
     
-    is_loss_plot = any('loss' in label.lower() for label in labels)
-    is_score_plot = any('score' in label.lower() for label in labels)
+    is_loss_plot = any('loss' in label.lower() for label in label_list)
+    is_score_plot = any('score' in label.lower() for label in label_list)
     
-    for label in labels:
+    for label in label_list:
         plt.plot(*result_log.getXY(label), label=label, linewidth=2.5)
 
     # 动态计算Y轴范围，避免CTSP-d数据（~4.6）被硬编码的3.83-3.88截断

@@ -2,13 +2,13 @@
 import torch
 from logging import getLogger
 
-from CSTPd.POMO.CTSPd_Env import CTSPdEnv as Env
-from CSTPd.POMO.CTSPd_Model import CTSPdModel as Model
+from CTSPd_Env import CTSPdEnv as Env
+from CTSPd_Model import CTSPdModel as Model
 
 from torch.optim import Adam as Optimizer
 from torch.optim.lr_scheduler import MultiStepLR as Scheduler
 
-from utils.utils import *
+from utils import *
 
 
 class TSPTrainer:

@@ -1,6 +1,9 @@
+import os
+import subprocess
+import sys
+from logging import getLogger
 
 import torch
-from logging import getLogger
 
 from CSTPd_cluster.POMO.CTSPd_Env import CTSPdEnv as Env
 from CSTPd_cluster.POMO.CTSPd_Model import CTSPdModel as Model
@@ -35,13 +38,13 @@ class TSPTrainer:
             cuda_device_num = self.trainer_params['cuda_device_num']
             torch.cuda.set_device(cuda_device_num)
             device = torch.device('cuda', cuda_device_num)
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
         else:
             device = torch.device('cpu')
-            torch.set_default_tensor_type('torch.FloatTensor')
+        torch.set_default_dtype(torch.float32)
+        torch.set_default_device(device)
 
         # Main Components
-        self.model = Model(**self.model_params)
+        self.model = Model(**self.model_params).to(device)
         self.env = Env(**self.env_params)
         self.optimizer = Optimizer(self.model.parameters(), **self.optimizer_params['optimizer'])
         self.scheduler = Scheduler(self.optimizer, **self.optimizer_params['scheduler'])
@@ -61,17 +64,16 @@ class TSPTrainer:
 
         # utility
         self.time_estimator = TimeEstimator()
+        self.log_image_available = None
 
     def run(self):
         self.time_estimator.reset(self.start_epoch)
         for epoch in range(self.start_epoch, self.trainer_params['epochs']+1):
             self.logger.info('=================================================================')
 
-            # LR Decay
-            self.scheduler.step()
-
             # Train
             train_score, train_loss = self._train_one_epoch(epoch)
+            self.scheduler.step()
             self.result_log.append('train_score', epoch, train_score)
             self.result_log.append('train_loss', epoch, train_loss)
 
@@ -89,10 +91,7 @@ class TSPTrainer:
             if epoch > 1:  # save latest images, every epoch
                 self.logger.info("Saving log_image")
                 image_prefix = '{}/latest'.format(self.result_folder)
-                util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_1'],
-                                    self.result_log, labels=['train_score'])
-                util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
-                                    self.result_log, labels=['train_loss'])
+                self._save_log_images(image_prefix)
 
             if all_done or (epoch % model_save_interval) == 0:
                 self.logger.info("Saving trained_model")
@@ -105,12 +104,9 @@ class TSPTrainer:
                 }
                 torch.save(checkpoint_dict, '{}/checkpoint-{}.pt'.format(self.result_folder, epoch))
 
-            if all_done or (epoch % img_save_interval) == 0:
+            if img_save_interval and (all_done or (epoch % img_save_interval) == 0):
                 image_prefix = '{}/img/checkpoint-{}'.format(self.result_folder, epoch)
-                util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_1'],
-                                    self.result_log, labels=['train_score'])
-                util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
-                                    self.result_log, labels=['train_loss'])
+                self._save_log_images(image_prefix)
 
             if all_done:
                 self.logger.info(" *** Training Done *** ")
@@ -170,11 +166,16 @@ class TSPTrainer:
             selected, prob = self.model(state)
             # shape: (batch, pomo)
             state, reward, done = self.env.step(selected)
+            if prob is None:
+                raise RuntimeError("Model returned no probability while training.")
             prob_list = torch.cat((prob_list, prob[:, :, None]), dim=2)
+
+        if reward is None:
+            raise RuntimeError("Environment finished without producing a reward.")
 
         # Loss
         ###############################################
-        advantage = reward - reward.float().mean(dim=1, keepdims=True)
+        advantage = reward - reward.float().mean(dim=1, keepdim=True)
         # shape: (batch, pomo)
         log_prob = prob_list.log().sum(dim=2)
         # size = (batch, pomo)
@@ -192,4 +193,125 @@ class TSPTrainer:
         self.model.zero_grad()
         loss_mean.backward()
         self.optimizer.step()
-        return score_mean.item(), loss_mean.item()
+        return float(score_mean.item()), float(loss_mean.item())
+
+    def _save_log_images(self, image_prefix):
+        if not self._can_save_log_images():
+            return
+
+        util_save_log_image_with_label(
+            image_prefix,
+            self.trainer_params['logging']['log_image_params_1'],
+            self.result_log,
+            labels=['train_score'],
+        )
+        util_save_log_image_with_label(
+            image_prefix,
+            self.trainer_params['logging']['log_image_params_2'],
+            self.result_log,
+            labels=['train_loss'],
+        )
+
+    def _can_save_log_images(self):
+        if self.log_image_available is not None:
+            return self.log_image_available
+
+        path_ready, path_message = self._has_activated_conda_dll_path()
+        if not path_ready:
+            self.log_image_available = False
+            self.logger.warning("Skipping log_image because conda DLL PATH is not activated: %s", path_message)
+            return False
+
+        code = (
+            "import os, tempfile; "
+            "os.environ.setdefault('MPLBACKEND', 'Agg'); "
+            "import matplotlib; matplotlib.use('Agg'); "
+            "import matplotlib.pyplot as plt; "
+            "fd, path = tempfile.mkstemp(suffix='.png'); os.close(fd); "
+            "plt.figure(); plt.plot([0, 1], [0, 1]); plt.savefig(path); "
+            "plt.close('all'); os.remove(path)"
+        )
+        try:
+            completed = subprocess.run(
+                [sys.executable, "-X", "faulthandler", "-c", code],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=30,
+                check=False,
+            )
+        except Exception as exc:
+            self.log_image_available = False
+            self.logger.warning("Skipping log_image because Matplotlib health check failed: %s", exc)
+            return False
+
+        self.log_image_available = completed.returncode == 0
+        if not self.log_image_available:
+            stderr = completed.stderr.decode("utf-8", errors="replace").strip().splitlines()
+            reason = stderr[0] if stderr else "no stderr"
+            self.logger.warning(
+                "Skipping log_image because Matplotlib savefig is not healthy "
+                "(exit code %s): %s",
+                completed.returncode,
+                reason,
+            )
+
+        return self.log_image_available
+
+    def _has_activated_conda_dll_path(self):
+        env_prefix = os.environ.get('CONDA_PREFIX')
+        executable_prefix = os.path.dirname(sys.executable)
+        env_prefix_path = os.path.normpath(env_prefix) if env_prefix is not None else None
+        normalized_env_prefix = os.path.normcase(env_prefix_path) if env_prefix_path else None
+        normalized_executable_prefix = os.path.normcase(os.path.normpath(executable_prefix))
+        if normalized_env_prefix and normalized_env_prefix != normalized_executable_prefix:
+            return False, 'CONDA_PREFIX points to {}, but Python executable is under {}'.format(
+                env_prefix_path,
+                os.path.normpath(executable_prefix),
+            )
+
+        conda_prefix = executable_prefix
+        conda_prefix = os.path.normpath(conda_prefix)
+
+        expected_dirs = [
+            conda_prefix,
+            os.path.join(conda_prefix, 'Library', 'mingw-w64', 'bin'),
+            os.path.join(conda_prefix, 'Library', 'usr', 'bin'),
+            os.path.join(conda_prefix, 'Library', 'bin'),
+            os.path.join(conda_prefix, 'Scripts'),
+        ]
+        path_dirs = [os.path.normpath(part) for part in os.environ.get('PATH', '').split(os.pathsep) if part]
+        expected_head = [os.path.normcase(path) for path in expected_dirs]
+        actual_head = [os.path.normcase(path) for path in path_dirs[:len(expected_dirs)]]
+        if actual_head != expected_head:
+            return False, 'PATH must start with {}'.format(expected_dirs[0])
+
+        path_lookup = {os.path.normcase(path): index for index, path in enumerate(path_dirs)}
+
+        missing = [path for path in expected_dirs if os.path.normcase(path) not in path_lookup]
+        if missing:
+            return False, 'missing {}'.format(missing[0])
+
+        base_prefix = os.path.normpath(os.path.join(conda_prefix, '..', '..'))
+        if os.path.basename(os.path.dirname(conda_prefix)).lower() == 'envs':
+            base_dirs = [
+                base_prefix,
+                os.path.join(base_prefix, 'Library', 'mingw-w64', 'bin'),
+                os.path.join(base_prefix, 'Library', 'usr', 'bin'),
+                os.path.join(base_prefix, 'Library', 'bin'),
+                os.path.join(base_prefix, 'Scripts'),
+            ]
+            base_indexes = [
+                path_lookup[os.path.normcase(path)]
+                for path in base_dirs
+                if os.path.normcase(path) in path_lookup
+            ]
+            if base_indexes:
+                first_base_index = min(base_indexes)
+                late_expected = [
+                    path for path in expected_dirs
+                    if path_lookup[os.path.normcase(path)] > first_base_index
+                ]
+                if late_expected:
+                    return False, '{} appears after base Anaconda PATH entries'.format(late_expected[0])
+
+        return True, 'ok'

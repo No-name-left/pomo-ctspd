@@ -1,0 +1,22 @@
+{
+  "include": [
+    "CSTPd_bsl",
+    "CSTPd_cluster",
+    "TSP",
+    "utils"
+  ],
+  "exclude": [
+    "**/result/**",
+    "CTSPd(SOTA)/**",
+    "**/__pycache__"
+  ],
+  "extraPaths": [
+    ".",
+    "./CSTPd_cluster",
+    "./CSTPd_cluster/POMO",
+    "./CSTPd_bsl",
+    "./CSTPd_bsl/POMO",
+    "./TSP",
+    "./TSP/POMO"
+  ]
+}

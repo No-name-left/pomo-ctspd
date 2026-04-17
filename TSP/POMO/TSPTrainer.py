@@ -2,8 +2,8 @@
 import torch
 from logging import getLogger
 
-from TSPEnv import TSPEnv as Env
-from TSPModel import TSPModel as Model
+from TSP.POMO.TSPEnv import TSPEnv as Env
+from TSP.POMO.TSPModel import TSPModel as Model
 
 from torch.optim import Adam as Optimizer
 from torch.optim.lr_scheduler import MultiStepLR as Scheduler
@@ -170,11 +170,16 @@ class TSPTrainer:
             selected, prob = self.model(state)
             # shape: (batch, pomo)
             state, reward, done = self.env.step(selected)
+            if prob is None:
+                raise RuntimeError("Model returned no probability while training.")
             prob_list = torch.cat((prob_list, prob[:, :, None]), dim=2)
+
+        if reward is None:
+            raise RuntimeError("Environment finished without producing a reward.")
 
         # Loss
         ###############################################
-        advantage = reward - reward.float().mean(dim=1, keepdims=True)
+        advantage = reward - reward.float().mean(dim=1, keepdim=True)
         # shape: (batch, pomo)
         log_prob = prob_list.log().sum(dim=2)
         # size = (batch, pomo)
@@ -192,4 +197,4 @@ class TSPTrainer:
         self.model.zero_grad()
         loss_mean.backward()
         self.optimizer.step()
-        return score_mean.item(), loss_mean.item()
+        return float(score_mean.item()), float(loss_mean.item())

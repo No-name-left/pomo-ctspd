@@ -2,13 +2,14 @@ import torch
 import numpy as np
 import os
 import json
+import time
 from pathlib import Path
 from logging import getLogger
 from glob import glob
 
-from CTSPd_Env import CTSPdEnv as Env
-from CTSPd_Model import CTSPdModel as Model
-from CTSPd_ProblemDef import get_random_problems, augment_xy_data_by_8_fold, parse_ctspd_file
+from CSTPd_cluster.POMO.CTSPd_Env import CTSPdEnv as Env
+from CSTPd_cluster.POMO.CTSPd_Model import CTSPdModel as Model
+from CSTPd_cluster.CTSPd_ProblemDef import get_random_problems, augment_xy_data_by_8_fold, parse_ctspd_file
 from utils.utils import *
 
 
@@ -88,7 +89,7 @@ class CTSPdTester:
         if group_embedding_key not in state_dict:
             return
 
-        inferred_num_groups = state_dict[group_embedding_key].size(0) - 1
+        inferred_num_groups = int(state_dict[group_embedding_key].size(0)) - 1
         configured_num_groups = self.model_params.get('num_groups')
         if configured_num_groups != inferred_num_groups:
             self.logger.info(
@@ -171,7 +172,7 @@ class CTSPdTester:
         """Test single .ctspd file"""
         # Parse file
         problems, raw_dist_matrix, d, num_groups = parse_ctspd_file(filepath)
-        n_nodes = problems.size(1)
+        n_nodes = int(problems.size(1))
 
         model_num_groups = self.model_params.get('num_groups')
         if model_num_groups is not None and num_groups > model_num_groups:
@@ -211,11 +212,11 @@ class CTSPdTester:
         # Inference
         start_time = torch.cuda.Event(enable_timing=True) if self.tester_params['use_cuda'] else None
         end_time = torch.cuda.Event(enable_timing=True) if self.tester_params['use_cuda'] else None
+        t0 = None
         
-        if start_time:
+        if start_time is not None:
             start_time.record()
         else:
-            import time
             t0 = time.time()
         
         with torch.no_grad():
@@ -227,17 +228,22 @@ class CTSPdTester:
             while not done:
                 selected, _ = self.model(state)
                 state, reward, done = env.step(selected)
+
+        if reward is None:
+            raise RuntimeError("Environment finished without producing a reward.")
         
-        if end_time:
+        if start_time is not None and end_time is not None:
             end_time.record()
             torch.cuda.synchronize()
             inference_time = start_time.elapsed_time(end_time) / 1000.0
         else:
+            if t0 is None:
+                raise RuntimeError("CPU timer was not initialized.")
             inference_time = time.time() - t0
         
         best_tour, best_batch_idx, best_pomo_idx = self._get_best_tour(env, reward)
         best_length = self._calculate_real_length(best_tour, raw_dist_matrix)
-        predicted_length = -reward[best_batch_idx, best_pomo_idx].item()
+        predicted_length = -float(reward[best_batch_idx, best_pomo_idx].item())
         
         return {
             'filename': os.path.basename(filepath),
@@ -280,9 +286,12 @@ class CTSPdTester:
             selected, _ = self.model(state)
             state, reward, done = self.env.step(selected)
 
+        if reward is None:
+            raise RuntimeError("Environment finished without producing a reward.")
+
         # Return scores
         batch_size_orig = batch_size // aug_factor if aug_factor > 1 else batch_size
-        aug_reward = reward.reshape(aug_factor, batch_size_orig, self.env.pomo_size)
+        aug_reward = reward.reshape(int(aug_factor), int(batch_size_orig), int(self.env.pomo_size))
         
         max_pomo_reward, _ = aug_reward.max(dim=2)
         no_aug_score = -max_pomo_reward[0, :].float().mean()
@@ -290,18 +299,21 @@ class CTSPdTester:
         max_aug_pomo_reward, _ = max_pomo_reward.max(dim=0)
         aug_score = -max_aug_pomo_reward.float().mean()
 
-        return no_aug_score.item(), aug_score.item()
+        return float(no_aug_score.item()), float(aug_score.item())
 
     def _load_ctspd_file(self, filename):
         """Load .ctspd file and return problems tensor, distance matrix, d, num_groups"""
         return parse_ctspd_file(filename)
 
     def _get_best_tour(self, env, reward):
-        best_flat_idx = reward.argmax().item()
-        pomo_size = reward.size(1)
+        best_flat_idx = int(reward.argmax().item())
+        pomo_size = int(reward.size(1))
         best_batch_idx = best_flat_idx // pomo_size
         best_pomo_idx = best_flat_idx % pomo_size
-        best_tour = env.selected_node_list[best_batch_idx, best_pomo_idx].cpu().tolist()
+        selected_node_list = env.selected_node_list
+        if selected_node_list is None:
+            raise RuntimeError("Environment has no selected tour.")
+        best_tour = [int(node) for node in selected_node_list[best_batch_idx, best_pomo_idx].cpu().tolist()]
         return best_tour, best_batch_idx, best_pomo_idx
     
     def _calculate_real_length(self, tour, dist_matrix):
@@ -309,9 +321,9 @@ class CTSPdTester:
         length = 0.0
         n = len(tour)
         for i in range(n):
-            from_node = tour[i]
-            to_node = tour[(i+1) % n]
-            length += dist_matrix[from_node, to_node].item()
+            from_node = int(tour[i])
+            to_node = int(tour[(i+1) % n])
+            length += float(dist_matrix[from_node, to_node].item())
         return length
     
     def _save_file_results(self, results):

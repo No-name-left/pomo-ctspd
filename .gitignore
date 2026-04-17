@@ -12,6 +12,8 @@ result/**/*.pkl
 # 测试结果（临时文件）
 TSP/POMO/result/
 CTSPd/POMO/result/
+CSTPd_cluster/POMO/result/
+CSTPd_bsl/POMO/result/
 
 # IDE设置
 .vscode/

@@ -4,8 +4,8 @@ import torch
 import os
 from logging import getLogger
 
-from TSPEnv import TSPEnv as Env
-from TSPModel import TSPModel as Model
+from TSP.POMO.TSPEnv import TSPEnv as Env
+from TSP.POMO.TSPModel import TSPModel as Model
 
 from utils.utils import *
 
@@ -111,9 +111,12 @@ class TSPTester:
             # shape: (batch, pomo)
             state, reward, done = self.env.step(selected)
 
+        if reward is None:
+            raise RuntimeError("Environment finished without producing a reward.")
+
         # Return
         ###############################################
-        aug_reward = reward.reshape(aug_factor, batch_size, self.env.pomo_size)
+        aug_reward = reward.reshape(int(aug_factor), int(batch_size), int(self.env.pomo_size))
         # shape: (augmentation, batch, pomo)
 
         max_pomo_reward, _ = aug_reward.max(dim=2)  # get best results from pomo
@@ -124,4 +127,4 @@ class TSPTester:
         # shape: (batch,)
         aug_score = -max_aug_pomo_reward.float().mean()  # negative sign to make positive value
 
-        return no_aug_score.item(), aug_score.item()
+        return float(no_aug_score.item()), float(aug_score.item())

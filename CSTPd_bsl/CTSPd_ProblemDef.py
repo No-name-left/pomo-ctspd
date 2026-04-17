@@ -8,7 +8,7 @@ def get_random_problems(batch_size, problem_size, num_groups):
     node_xy = torch.rand(size=(batch_size, problem_size, 2))
 
     if problem_size >= num_groups:
-        base_groups = torch.arange(num_groups).unsqueeze(0).expand(batch_size, num_groups)
+        base_groups = torch.arange(num_groups).unsqueeze(dim=0).expand(batch_size, num_groups)
 
         remaining = problem_size - num_groups
         if remaining > 0:
@@ -17,7 +17,7 @@ def get_random_problems(batch_size, problem_size, num_groups):
         else:
             all_groups = base_groups
 
-        perm = torch.argsort(torch.rand(batch_size, problem_size), dim=1)
+        perm = torch.argsort(torch.rand(size=(batch_size, problem_size)), dim=1)
         all_groups = torch.gather(all_groups, 1, perm)
 
     else:
@@ -26,7 +26,7 @@ def get_random_problems(batch_size, problem_size, num_groups):
             selected = torch.randperm(num_groups)[:problem_size]
             all_groups[b] = selected.sort()[0]
 
-    node_priority = all_groups.float().unsqueeze(2) + 1.0
+    node_priority = all_groups.float().unsqueeze(dim=2) + 1.0
 
     problems = torch.cat([node_xy, node_priority], dim=2)
     return problems
@@ -181,7 +181,7 @@ def _coords_from_distance_matrix(dist_matrix):
     n_nodes = dist_matrix.shape[0]
 
     if n_nodes == 1:
-        return torch.zeros(1, 2)
+        return torch.zeros((1, 2))
 
     anchor_a = int(np.argmax(dist_matrix.sum(axis=1)))
     anchor_b = int(np.argmax(dist_matrix[anchor_a]))

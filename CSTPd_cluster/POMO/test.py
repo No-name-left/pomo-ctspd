@@ -1,19 +1,21 @@
+# pylint: disable=wrong-import-position
 import argparse
-import os
 import re
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Sequence
 
 import torch
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, "..")
-sys.path.insert(0, "../..")
+THIS_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = THIS_DIR.parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from CTSPd_Env import CTSPdEnv
-from CTSPd_Model import CTSPdModel
-from CTSPd_ProblemDef import parse_ctspd_file
+from CSTPd_cluster.POMO.CTSPd_Env import CTSPdEnv  # noqa: E402
+from CSTPd_cluster.POMO.CTSPd_Model import CTSPdModel  # noqa: E402
+from CSTPd_cluster.CTSPd_ProblemDef import parse_ctspd_file  # noqa: E402
 
 
 DEFAULT_MODEL_PARAMS = {
@@ -28,7 +30,7 @@ DEFAULT_MODEL_PARAMS = {
 
 
 def project_root():
-    return Path(__file__).resolve().parents[2]
+    return PROJECT_ROOT
 
 
 def result_root():
@@ -95,12 +97,15 @@ def resolve_checkpoint_path(model_dir=None, checkpoint_epoch=None):
 def infer_model_num_groups(state_dict):
     group_embedding_key = "encoder.group_embedding.weight"
     if group_embedding_key in state_dict:
-        return state_dict[group_embedding_key].size(0) - 1
+        return int(state_dict[group_embedding_key].size(0)) - 1
     return None
 
 
-def calc_real_length(tour, dist_matrix):
-    return sum(dist_matrix[tour[i], tour[(i + 1) % len(tour)]].item() for i in range(len(tour)))
+def calc_real_length(tour: Sequence[int], dist_matrix: torch.Tensor) -> float:
+    return sum(
+        float(dist_matrix[int(tour[i]), int(tour[(i + 1) % len(tour)])].item())
+        for i in range(len(tour))
+    )
 
 
 def find_best_known_length(instance_file):
@@ -202,7 +207,7 @@ def main():
     print(f"Checkpoint: {checkpoint_path}")
 
     problems, raw_dist, relaxation_d, num_groups = parse_ctspd_file(str(instance_file))
-    n_nodes = problems.size(1)
+    n_nodes = int(problems.size(1))
     print(f"Instance info: nodes={n_nodes}, d={relaxation_d}, groups={num_groups}")
 
     checkpoint = torch.load(checkpoint_path, map_location=device)
@@ -249,11 +254,16 @@ def main():
             selected, _ = model(state)
             state, reward, done = env.step(selected)
 
-    best_flat_idx = reward.argmax().item()
-    best_batch_idx = best_flat_idx // reward.size(1)
-    best_pomo_idx = best_flat_idx % reward.size(1)
-    best_reward = reward[best_batch_idx, best_pomo_idx].item()
-    best_tour = env.selected_node_list[best_batch_idx, best_pomo_idx].cpu().tolist()
+    selected_node_list = env.selected_node_list
+    if reward is None or selected_node_list is None:
+        raise RuntimeError("Inference finished before producing a complete tour.")
+
+    best_flat_idx = int(reward.argmax().item())
+    reward_width = int(reward.size(1))
+    best_batch_idx = best_flat_idx // reward_width
+    best_pomo_idx = best_flat_idx % reward_width
+    best_reward = float(reward[best_batch_idx, best_pomo_idx].item())
+    best_tour = [int(node) for node in selected_node_list[best_batch_idx, best_pomo_idx].cpu().tolist()]
     real_length = calc_real_length(best_tour, raw_dist.cpu())
 
     best_known_length = find_best_known_length(instance_file)

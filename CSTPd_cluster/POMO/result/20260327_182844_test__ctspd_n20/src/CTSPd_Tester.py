@@ -9,7 +9,7 @@ from glob import glob
 from CTSPd_Env import CTSPdEnv as Env
 from CTSPd_Model import CTSPdModel as Model
 from CTSPd_ProblemDef import get_random_problems, augment_xy_data_by_8_fold
-from utils.utils import *
+from utils import *
 
 
 class CTSPdTester:
