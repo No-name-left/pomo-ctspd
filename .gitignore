@@ -22,3 +22,7 @@ CSTPd_bsl/POMO/result/
 # 系统文件
 .DS_Store
 Thumbs.db
+
+# Runtime logs
+debug.log
+*.log
