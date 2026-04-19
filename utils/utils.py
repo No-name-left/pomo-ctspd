@@ -37,11 +37,6 @@ import json
 import shutil
 from typing import Any, Dict, Optional, Set
 
-try:
-    from zoneinfo import ZoneInfo
-except ImportError:  # pragma: no cover - Python < 3.9 fallback
-    ZoneInfo = None
-
 os.environ.setdefault("MPLBACKEND", "Agg")
 
 try:
@@ -56,19 +51,43 @@ except Exception as exc:  # pragma: no cover - depends on local install
 
 
 def _get_process_start_time():
-    if ZoneInfo is not None:
-        try:
-            return datetime.now(ZoneInfo("Asia/Seoul"))
-        except Exception:
-            pass
     return datetime.now().astimezone()
 
 
+def _format_result_timestamp(moment=None):
+    if moment is None:
+        moment = _get_process_start_time()
+    return "{}日_{}点{}分".format(
+        moment.strftime("%d"),
+        moment.strftime("%H"),
+        moment.strftime("%M"),
+    )
+
+
+def _make_default_result_folder():
+    return './result/' + _format_result_timestamp() + '{desc}'
+
+
+def _make_unique_folder_path(folder):
+    if not os.path.exists(folder):
+        return folder
+
+    suffix = 2
+    while True:
+        candidate = "{}_run{:02d}".format(folder, suffix)
+        if not os.path.exists(candidate):
+            return candidate
+        suffix += 1
+
+
 process_start_time = _get_process_start_time()
-result_folder = './result/' + process_start_time.strftime("%Y%m%d_%H%M%S") + '{desc}'
+result_folder = None
 
 
 def get_result_folder():
+    global result_folder
+    if result_folder is None:
+        result_folder = _make_default_result_folder()
     return result_folder
 
 
@@ -79,14 +98,18 @@ def set_result_folder(folder):
 
 def create_logger(log_file: Optional[Dict[str, Any]] = None):
     log_config = {} if log_file is None else dict(log_file)
+    auto_filepath = 'filepath' not in log_config
 
-    if 'filepath' not in log_config:
+    if auto_filepath:
         log_config['filepath'] = get_result_folder()
 
     if 'desc' in log_config:
         log_config['filepath'] = log_config['filepath'].format(desc='_' + log_config['desc'])
     else:
         log_config['filepath'] = log_config['filepath'].format(desc='')
+
+    if auto_filepath:
+        log_config['filepath'] = _make_unique_folder_path(log_config['filepath'])
 
     set_result_folder(log_config['filepath'])
 
