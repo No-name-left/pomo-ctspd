@@ -32,6 +32,8 @@ from CSTPd_bsl.POMO.CTSPd_Trainer import TSPTrainer as Trainer
 env_params = {
     'problem_size': 100,
     'pomo_size': 100,
+    'num_groups': 8,
+    'relaxation_d': 1,
 }
 
 model_params = {
@@ -51,7 +53,7 @@ optimizer_params = {
         'weight_decay': 1e-6
     },
     'scheduler': {
-        'milestones': [3001,],
+        'milestones': [80,],
         'gamma': 0.1
     }
 }
@@ -59,15 +61,15 @@ optimizer_params = {
 trainer_params = {
     'use_cuda': USE_CUDA,
     'cuda_device_num': CUDA_DEVICE_NUM,
-    'epochs': 3100,
+    'epochs': 160,
     'train_episodes': 100 * 1000,
-    'train_batch_size': 64,
+    'train_batch_size': 256,
     'logging': {
-        'model_save_interval': 100,
-        'img_save_interval': 100,
+        'model_save_interval': 10,
+        'img_save_interval': 5,
         'log_image_params_1': {
             'json_foldername': 'log_image_style',
-            'filename': 'style_tsp_100.json'
+            'filename': 'style_ctspd_20.json'
         },
         'log_image_params_2': {
             'json_foldername': 'log_image_style',
@@ -79,12 +81,21 @@ trainer_params = {
         # 'path': './result/saved_tsp20_model',  # directory path of pre-trained model and log files saved.
         # 'epoch': 510,  # epoch version of pre-trained model to laod.
 
-    }
+    },
+    'early_stopping': {
+        'enable': True,
+        'monitor': 'train_score',
+        'mode': 'min',
+        'patience': 20,
+        'min_delta': 1e-4,
+        'warmup_epochs': 15,
+        'checkpoint_best': True,
+    },
 }
 
 logger_params = {
     'log_file': {
-        'desc': 'train__tsp_n100__3000epoch',
+        'desc': 'train__baseline_ctspd_n100__160epoch_bs256',
         'filename': 'log.txt'
     }
 }

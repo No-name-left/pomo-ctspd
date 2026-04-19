@@ -20,6 +20,9 @@ class CTSPdModel(nn.Module):
         # shape: (batch, problem, EMBEDDING_DIM)
         self.decoder.set_kv(self.encoded_nodes)
 
+    def set_training_epoch(self, epoch, total_epochs):
+        self.encoder.set_training_epoch(epoch, total_epochs)
+
     def forward(self, state):
         batch_size = int(state.BATCH_IDX.size(0))
         pomo_size = int(state.BATCH_IDX.size(1))
@@ -96,34 +99,42 @@ class CTSPd_Encoder(nn.Module):
         embedding_dim = self.model_params['embedding_dim']
         encoder_layer_num = self.model_params['encoder_layer_num']
         num_groups = self.model_params.get('num_groups', 5)  # 从 env_params 传入，5是安全设置值
+        self.use_group_embedding = self.model_params.get('use_group_embedding', True)
+        self.use_group_fusion_gate = self.model_params.get('use_group_fusion_gate', True)
 
         self.coord_embedding = nn.Linear(2, embedding_dim)
-        # 新增：聚类感知嵌入（可学习的组嵌入表）
-        # 为每个优先级组（1~num_groups）学习一个嵌入向量
-        self.group_embedding = nn.Embedding(num_groups + 1, embedding_dim) # +1 因为优先级是 1-based，索引0保留给padding/depot
+        self.group_embedding = nn.Embedding(num_groups + 1, embedding_dim)
         
-        # 新增：融合层（将节点特征与组特征融合）
         self.fusion = nn.Linear(embedding_dim * 2, embedding_dim)
+        self.fusion_gate = nn.Linear(embedding_dim * 2, embedding_dim)
 
         self.layers = nn.ModuleList([EncoderLayer(**model_params) for _ in range(encoder_layer_num)])
 
+    def set_training_epoch(self, epoch, total_epochs):
+        for layer in self.layers:
+            layer.set_training_epoch(epoch, total_epochs)
+
     def forward(self, data):
-    # data: (batch, problem, 3) = [x, y, priority]
-        batch_size, problem_size, _ = data.size()
+        # data: (batch, problem, 3) = [x, y, priority]
         
-        # 提取组ID（用于传给EncoderLayer）
         group_ids = data[:, :, 2].long()  # (batch, problem)
         
-        # 分离坐标并嵌入
-        coords = data[:, :, :2]                           # (batch, problem, 2)
-        coord_feat = self.coord_embedding(coords)         # (batch, problem, embed)
-        group_feat = self.group_embedding(group_ids)      # (batch, problem, embed)
+        coords = data[:, :, :2]
+        coord_feat = self.coord_embedding(coords)
+
+        if self.use_group_embedding:
+            group_feat = self.group_embedding(group_ids)
+            combined = torch.cat([coord_feat, group_feat], dim=-1)
+            fused = self.fusion(combined)
+
+            if self.use_group_fusion_gate:
+                gate = torch.sigmoid(self.fusion_gate(combined))
+                embedded_input = coord_feat + gate * (fused - coord_feat)
+            else:
+                embedded_input = fused
+        else:
+            embedded_input = coord_feat
         
-        # 融合
-        combined = torch.cat([coord_feat, group_feat], dim=-1)  # (batch, problem, embed*2)
-        embedded_input = self.fusion(combined)                  # (batch, problem, embed)
-        
-        # 通过Transformer层，传递group_ids
         out = embedded_input
         for layer in self.layers:
             out = layer(out, group_ids=group_ids)
@@ -138,6 +149,17 @@ class EncoderLayer(nn.Module):
         embedding_dim = self.model_params['embedding_dim']
         head_num = self.model_params['head_num']
         qkv_dim = self.model_params['qkv_dim']
+        self.cluster_bias_mode = self.model_params.get('cluster_bias_mode', 'scheduled').lower()
+        self.same_group_bias_init = float(self.model_params.get('same_group_bias_init', 0.1))
+        self.same_group_bias_final = float(self.model_params.get('same_group_bias_final', 1.25))
+        self.same_group_bias_max = float(self.model_params.get('same_group_bias_max', 2.0))
+        self.same_group_bias_warmup_epochs = max(
+            1,
+            int(self.model_params.get('same_group_bias_warmup_epochs', 30)),
+        )
+        self.priority_distance_bias = float(self.model_params.get('priority_distance_bias', 0.15))
+        self.priority_distance_tau = max(1e-6, float(self.model_params.get('priority_distance_tau', 1.0)))
+        self.exclude_self_group_bias = self.model_params.get('exclude_self_group_bias', True)
 
         self.Wq = nn.Linear(embedding_dim, head_num * qkv_dim, bias=False)
         self.Wk = nn.Linear(embedding_dim, head_num * qkv_dim, bias=False)
@@ -148,6 +170,23 @@ class EncoderLayer(nn.Module):
         self.feedForward = Feed_Forward_Module(**model_params)
         self.addAndNormalization2 = Add_And_Normalization_Module(**model_params)
 
+        self.register_buffer(
+            'same_group_bias_runtime',
+            torch.tensor(self.same_group_bias_init, dtype=torch.float32),
+        )
+        if self.cluster_bias_mode == 'learnable':
+            self.same_group_bias_param = nn.Parameter(torch.tensor(self.same_group_bias_init, dtype=torch.float32))
+        else:
+            self.same_group_bias_param = None
+
+    def set_training_epoch(self, epoch, total_epochs):
+        if self.cluster_bias_mode != 'scheduled':
+            return
+
+        progress = min(1.0, max(0.0, float(epoch - 1) / float(self.same_group_bias_warmup_epochs)))
+        value = self.same_group_bias_init + progress * (self.same_group_bias_final - self.same_group_bias_init)
+        self.same_group_bias_runtime.fill_(value)
+
     def forward(self, input1, group_ids=None):
         # input.shape: (batch, problem, EMBEDDING_DIM)
         head_num = self.model_params['head_num']
@@ -157,18 +196,7 @@ class EncoderLayer(nn.Module):
         v = reshape_by_heads(self.Wv(input1), head_num=head_num)
         # q shape: (batch, HEAD_NUM, problem, KEY_DIM)
 
-        # 计算聚类感知偏置（如果提供了组ID）
-        attention_bias = None
-        if group_ids is not None:
-            # group_ids: (batch, problem)，值为 1, 2, 3... 表示优先级组
-            g_i = group_ids.unsqueeze(dim=1).unsqueeze(dim=3)  # (batch, 1, problem, 1)
-            g_j = group_ids.unsqueeze(dim=1).unsqueeze(dim=2)  # (batch, 1, 1, problem)
-            
-            # 同组为1，不同组为0
-            same_group_mask = (g_i == g_j).float()  # (batch, 1, problem, problem)
-            
-            # 同组注意力加分（可学习的系数，这里简化为固定值0.5）
-            attention_bias = same_group_mask * 0.5
+        attention_bias = self._make_group_attention_bias(group_ids, input1.device)
 
         # 传入multi_head_attention
         out_concat = multi_head_attention(q, k, v, group_bias=attention_bias)
@@ -185,6 +213,60 @@ class EncoderLayer(nn.Module):
 
         return out3
         # shape: (batch, problem, EMBEDDING_DIM)
+
+    def _current_same_group_bias(self):
+        if self.cluster_bias_mode in ('none', 'off', 'disabled'):
+            return None
+        if self.cluster_bias_mode == 'learnable':
+            bias = F.softplus(self.same_group_bias_param)
+        elif self.cluster_bias_mode == 'fixed':
+            bias = torch.tensor(self.same_group_bias_final, device=self.same_group_bias_runtime.device)
+        else:
+            bias = self.same_group_bias_runtime
+        return torch.clamp(bias, min=0.0, max=self.same_group_bias_max)
+
+    def _make_group_attention_bias(self, group_ids, device):
+        if group_ids is None:
+            return None
+
+        same_group_bias = self._current_same_group_bias()
+        use_same_group = same_group_bias is not None and float(same_group_bias.detach().cpu()) > 0
+        use_distance_bias = self.priority_distance_bias > 0
+        if not use_same_group and not use_distance_bias:
+            return None
+
+        g_i = group_ids.unsqueeze(dim=1).unsqueeze(dim=3)
+        g_j = group_ids.unsqueeze(dim=1).unsqueeze(dim=2)
+        problem_size = int(group_ids.size(1))
+
+        if self.exclude_self_group_bias:
+            eye = torch.eye(problem_size, dtype=torch.bool, device=device)[None, None, :, :]
+        else:
+            eye = None
+
+        attention_bias = torch.zeros(
+            group_ids.size(0),
+            1,
+            problem_size,
+            problem_size,
+            device=device,
+            dtype=torch.float32,
+        )
+
+        if use_same_group:
+            same_group_mask = (g_i == g_j)
+            if eye is not None:
+                same_group_mask = same_group_mask & (~eye)
+            attention_bias = attention_bias + same_group_mask.float() * same_group_bias.to(device)
+
+        if use_distance_bias:
+            group_distance = (g_i - g_j).abs().float()
+            distance_mask = torch.exp(-group_distance / self.priority_distance_tau)
+            if eye is not None:
+                distance_mask = distance_mask.masked_fill(eye, 0.0)
+            attention_bias = attention_bias + distance_mask * self.priority_distance_bias
+
+        return attention_bias
 
 
 ########################################
@@ -309,7 +391,7 @@ def multi_head_attention(q, k, v, rank2_ninf_mask=None, rank3_ninf_mask=None, gr
     score = torch.matmul(q, k.transpose(dim0=2, dim1=3))
     # shape: (batch, head_num, n, problem)
 
-    score_scaled = score / torch.sqrt(torch.tensor(key_dim, dtype=torch.float))
+    score_scaled = score / torch.sqrt(torch.tensor(key_dim, dtype=torch.float, device=score.device))
     # 新增：应用聚类感知偏置（在softmax之前）
     if group_bias is not None:
         # group_bias: (batch, 1, problem, problem) 或兼容形状

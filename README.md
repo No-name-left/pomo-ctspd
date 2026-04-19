@@ -40,7 +40,7 @@ Install dependencies:
 ```bash
 conda create -n py310-env python=3.10
 conda activate py310-env
-pip install torch numpy matplotlib pytz
+pip install torch numpy matplotlib
 ```
 
 Train the cluster-aware N=20 model:

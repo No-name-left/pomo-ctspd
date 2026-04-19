@@ -7,26 +7,29 @@ import torch
 def get_random_problems(batch_size, problem_size, num_groups):
     node_xy = torch.rand(size=(batch_size, problem_size, 2))
 
+    if num_groups <= 0:
+        raise ValueError("num_groups must be positive")
+
     if problem_size >= num_groups:
         base_groups = torch.arange(num_groups).unsqueeze(dim=0).expand(batch_size, num_groups)
 
         remaining = problem_size - num_groups
         if remaining > 0:
             random_groups = torch.randint(0, num_groups, (batch_size, remaining))
-            all_groups = torch.cat([base_groups, random_groups], dim=1)
+            priority_groups = torch.cat([base_groups, random_groups], dim=1)
         else:
-            all_groups = base_groups
+            priority_groups = base_groups
 
         perm = torch.argsort(torch.rand(size=(batch_size, problem_size)), dim=1)
-        all_groups = torch.gather(all_groups, 1, perm)
+        priority_groups = torch.gather(priority_groups, 1, perm)
 
     else:
-        all_groups = torch.zeros(batch_size, problem_size, dtype=torch.long)
+        priority_groups = torch.zeros(batch_size, problem_size, dtype=torch.long)
         for b in range(batch_size):
             selected = torch.randperm(num_groups)[:problem_size]
-            all_groups[b] = selected.sort()[0]
+            priority_groups[b] = selected.sort()[0]
 
-    node_priority = all_groups.float().unsqueeze(dim=2) + 1.0
+    node_priority = priority_groups.float().unsqueeze(dim=2) + 1.0
 
     problems = torch.cat([node_xy, node_priority], dim=2)
     return problems

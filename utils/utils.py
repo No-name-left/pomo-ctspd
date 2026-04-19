@@ -31,14 +31,40 @@ import os
 from datetime import datetime
 import logging
 import logging.config
-import pytz
+import subprocess
 import numpy as np
-import matplotlib.pyplot as plt
 import json
 import shutil
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Set
 
-process_start_time = datetime.now(pytz.timezone("Asia/Seoul"))
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:  # pragma: no cover - Python < 3.9 fallback
+    ZoneInfo = None
+
+os.environ.setdefault("MPLBACKEND", "Agg")
+
+try:
+    import matplotlib
+    matplotlib.use("Agg", force=True)
+    import matplotlib.pyplot as plt
+    _PLOT_IMPORT_ERROR = None
+except Exception as exc:  # pragma: no cover - depends on local install
+    matplotlib = None
+    plt = None
+    _PLOT_IMPORT_ERROR = exc
+
+
+def _get_process_start_time():
+    if ZoneInfo is not None:
+        try:
+            return datetime.now(ZoneInfo("Asia/Seoul"))
+        except Exception:
+            pass
+    return datetime.now().astimezone()
+
+
+process_start_time = _get_process_start_time()
 result_folder = './result/' + process_start_time.strftime("%Y%m%d_%H%M%S") + '{desc}'
 
 
@@ -51,7 +77,7 @@ def set_result_folder(folder):
     result_folder = folder
 
 
-def create_logger(log_file: Optional[dict[str, Any]] = None):
+def create_logger(log_file: Optional[Dict[str, Any]] = None):
     log_config = {} if log_file is None else dict(log_file)
 
     if 'filepath' not in log_config:
@@ -82,7 +108,7 @@ def create_logger(log_file: Optional[dict[str, Any]] = None):
         root_logger.removeHandler(hdlr)
 
     # write to file
-    fileout = logging.FileHandler(filename, mode=file_mode)
+    fileout = logging.FileHandler(filename, mode=file_mode, encoding='utf-8')
     fileout.setLevel(logging.INFO)
     fileout.setFormatter(formatter)
     root_logger.addHandler(fileout)
@@ -113,8 +139,8 @@ class AverageMeter:
 
 class LogData:
     def __init__(self):
-        self.keys: set[str] = set()
-        self.data: dict[str, list[list[Any]]] = {}
+        self.keys: Set[str] = set()
+        self.data: Dict[str, list] = {}
 
     def get_raw_data(self):
         return self.keys, self.data
@@ -244,8 +270,11 @@ def util_save_log_image_with_label(result_file_prefix,
                                    img_params,
                                    result_log: LogData,
                                    labels=None):
+    if plt is None:
+        raise RuntimeError(f"Matplotlib is not available: {_PLOT_IMPORT_ERROR}")
+
     dirname = os.path.dirname(result_file_prefix)
-    if not os.path.exists(dirname):
+    if dirname and not os.path.exists(dirname):
         os.makedirs(dirname)
 
     _build_log_image_plt(img_params, result_log, labels)
@@ -270,7 +299,10 @@ def util_save_log_image_with_label(result_file_prefix,
     if all_values:
         ax = plt.gca()
         y_min, y_max = min(all_values), max(all_values)
-        margin = (y_max - y_min) * 0.15
+        if y_min == y_max:
+            margin = abs(y_min) * 0.1 if y_min != 0 else 0.1
+        else:
+            margin = (y_max - y_min) * 0.15
         ax.set_ylim(y_min - margin, y_max + margin)
     
  
@@ -279,6 +311,49 @@ def util_save_log_image_with_label(result_file_prefix,
     fig = plt.gcf()
     fig.savefig('{}-{}.jpg'.format(result_file_prefix, file_name))
     plt.close(fig)
+
+
+def util_can_save_log_images(logger=None):
+    if _PLOT_IMPORT_ERROR is not None:
+        if logger is not None:
+            logger.warning("Skipping log_image because Matplotlib import failed: %s", _PLOT_IMPORT_ERROR)
+        return False
+
+    code = (
+        "import os, tempfile; "
+        "os.environ.setdefault('MPLBACKEND', 'Agg'); "
+        "import matplotlib; matplotlib.use('Agg', force=True); "
+        "import matplotlib.pyplot as plt; "
+        "fd, path = tempfile.mkstemp(suffix='.png'); os.close(fd); "
+        "plt.figure(); plt.plot([0, 1], [0, 1]); plt.savefig(path); "
+        "plt.close('all'); os.remove(path)"
+    )
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-X", "faulthandler", "-c", code],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=30,
+            check=False,
+        )
+    except Exception as exc:
+        if logger is not None:
+            logger.warning("Skipping log_image because Matplotlib health check failed: %s", exc)
+        return False
+
+    if completed.returncode != 0:
+        if logger is not None:
+            stderr = completed.stderr.decode("utf-8", errors="replace").strip().splitlines()
+            reason = stderr[0] if stderr else "no stderr"
+            logger.warning(
+                "Skipping log_image because Matplotlib savefig is not healthy "
+                "(exit code %s): %s",
+                completed.returncode,
+                reason,
+            )
+        return False
+
+    return True
 
 
 def _build_log_image_plt(img_params,
@@ -291,8 +366,16 @@ def _build_log_image_plt(img_params,
     file_name = img_params['filename']
     log_image_config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), folder_name, file_name)
 
-    with open(log_image_config_file, 'r') as f:
-        config = json.load(f)
+    if os.path.exists(log_image_config_file):
+        with open(log_image_config_file, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+    else:
+        config = {
+            "figsize": {"x": 7, "y": 3.5},
+            "xlim": {"min": None, "max": None},
+            "ylim": {"min": None, "max": None},
+            "grid": True,
+        }
 
     figsize = (config['figsize']['x'], config['figsize']['y'])
     plt.figure(figsize=figsize)
@@ -328,6 +411,9 @@ def _build_log_image_plt(img_params,
         xlim_min = ax.dataLim.xmin
     if xlim_max is None:
         xlim_max = ax.dataLim.xmax
+    if xlim_min == xlim_max:
+        xlim_min -= 0.5
+        xlim_max += 0.5
     plt.xlim(xlim_min, xlim_max)
 
     plt.rc('legend', **{'fontsize': 10})
@@ -360,13 +446,18 @@ def copy_all_src(dst_root):
         execution_path = os.path.dirname(sys.argv[0])
 
     # home dir setting
-    tmp_dir1 = os.path.abspath(os.path.join(execution_path, sys.path[0]))
-    tmp_dir2 = os.path.abspath(os.path.join(execution_path, sys.path[1]))
+    candidate_dirs = []
+    for path_entry in sys.path[:3]:
+        if not path_entry:
+            continue
+        candidate_dir = os.path.abspath(os.path.join(execution_path, path_entry))
+        if os.path.isdir(candidate_dir):
+            candidate_dirs.append(candidate_dir)
 
-    if len(tmp_dir1) > len(tmp_dir2) and os.path.exists(tmp_dir2):
-        home_dir = tmp_dir2
+    if candidate_dirs:
+        home_dir = min(candidate_dirs, key=len)
     else:
-        home_dir = tmp_dir1
+        home_dir = os.path.abspath(os.getcwd())
 
     # make target directory
     dst_path = os.path.join(dst_root, 'src')
@@ -380,7 +471,12 @@ def copy_all_src(dst_root):
         if hasattr(value, '__file__') and value.__file__:
             src_abspath = os.path.abspath(value.__file__)
 
-            if os.path.commonprefix([home_dir, src_abspath]) == home_dir:
+            try:
+                is_project_file = os.path.commonpath([home_dir, src_abspath]) == home_dir
+            except ValueError:
+                is_project_file = False
+
+            if is_project_file:
                 dst_filepath = os.path.join(dst_path, os.path.basename(src_abspath))
 
                 if os.path.exists(dst_filepath):
@@ -396,5 +492,4 @@ def copy_all_src(dst_root):
 
                 # Debug: check whether file exists
                 if os.path.exists(src_abspath):
-                    shutil.copy(src_abspath, dst_filepath)
-
+                    shutil.copy2(src_abspath, dst_filepath)

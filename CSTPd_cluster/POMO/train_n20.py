@@ -53,6 +53,14 @@ model_params = {
     'ff_hidden_dim': 512,
     'num_groups': 8,
     'eval_type': 'argmax',
+    'use_group_embedding': True,
+    'use_group_fusion_gate': True,
+    'cluster_bias_mode': 'scheduled',
+    'same_group_bias_init': 0.1,
+    'same_group_bias_final': 1.25,
+    'same_group_bias_warmup_epochs': 30,
+    'priority_distance_bias': 0.15,
+    'priority_distance_tau': 1.0,
 }
 
 optimizer_params = {
@@ -61,7 +69,7 @@ optimizer_params = {
         'weight_decay': 1e-6
     },
     'scheduler': {
-        'milestones': [501,],
+        'milestones': [650,],
         'gamma': 0.1
     }
 }
@@ -69,7 +77,7 @@ optimizer_params = {
 trainer_params = {
     'use_cuda': USE_CUDA,
     'cuda_device_num': CUDA_DEVICE_NUM,
-    'epochs': 200,
+    'epochs': 800,
     'train_episodes': 100 * 1000,
     'train_batch_size': 512,
     'logging': {
@@ -89,12 +97,21 @@ trainer_params = {
         # 'path': './result/saved_ctspd20_model',  # directory path of pre-trained model and log files saved.
         # 'epoch': 510,  # epoch version of pre-trained model to laod.
 
-    }
+    },
+    'early_stopping': {
+        'enable': True,
+        'monitor': 'train_score',
+        'mode': 'min',
+        'patience': 120,
+        'min_delta': 1e-4,
+        'warmup_epochs': 100,
+        'checkpoint_best': True,
+    },
 }
 
 logger_params = {
     'log_file': {
-        'desc': 'train__ctspd_n20',
+        'desc': 'train__cluster_ctspd_n20',
         'filename': 'run_log'
     }
 }

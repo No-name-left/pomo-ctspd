@@ -329,7 +329,7 @@ class CTSPdTester:
     def _save_file_results(self, results):
         """Save results to JSON"""
         result_file = os.path.join(self.result_folder, 'test_results.json')
-        with open(result_file, 'w') as f:
+        with open(result_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2)
         self.logger.info(f'Results saved to {result_file}')
     
