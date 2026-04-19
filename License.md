@@ -1,6 +1,11 @@
 The MIT License
 
+This repository contains code derived from the original POMO implementation.
+The original copyright notice is preserved below. New CTSP-d modifications in
+this repository are provided under the same MIT License unless otherwise noted.
+
 Copyright (c) 2021 Yeong-Dae Kwon
+Copyright (c) 2026 The POMO for CTSP-d contributors
  
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
