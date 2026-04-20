@@ -11,6 +11,8 @@ from CSTPd_bsl.CTSPd_ProblemDef import get_random_problems, augment_xy_data_by_8
 class Reset_State:
     problems: torch.Tensor
     # shape: (batch, problem, 3)，因为加入了优先级
+    relaxation_d: Optional[torch.Tensor] = None
+    # shape: (batch,)
 
 
 @dataclass
@@ -24,6 +26,8 @@ class Step_State:
     # shape: (batch, pomo, node)
     current_min_priority: Optional[torch.Tensor] = None
     # shape: (batch, pomo)
+    relaxation_d: Optional[torch.Tensor] = None
+    # shape: (batch, pomo)
 
 
 class CTSPdEnv:
@@ -36,7 +40,16 @@ class CTSPdEnv:
         self.pomo_size = env_params['pomo_size']
          # CHANGE: 新增CTSP-d参数读取
         self.num_groups = env_params.get('num_groups', 3)  # 优先级组数
-        self.d = env_params.get('relaxation_d', 1)         # 松弛度d
+        if self.num_groups <= 0:
+            raise ValueError("num_groups must be positive")
+        self.relaxation_d_setting = env_params.get('relaxation_d', 1)
+        self.relaxation_d_min = int(env_params.get('relaxation_d_min', 0))
+        raw_d_max = env_params.get('relaxation_d_max', None)
+        self.relaxation_d_max = self.num_groups - 1 if raw_d_max is None else int(raw_d_max)
+        if not (0 <= self.relaxation_d_min <= self.relaxation_d_max <= self.num_groups - 1):
+            raise ValueError("relaxation_d range must satisfy 0 <= min <= max <= num_groups - 1")
+        self.relaxation_d = None
+        self.d = None
 
         # Const @Load_Problem
         ####################################
@@ -64,13 +77,14 @@ class CTSPdEnv:
         self.step_state: Optional[Step_State] = None
         self.current_min_priority = None  # shape: (batch, pomo), 当前未访问节点中的最高优先级
 
-    def load_problems(self, batch_size, aug_factor=1, problems=None):
+    def load_problems(self, batch_size, aug_factor=1, problems=None, relaxation_d=None):
         """
         加载问题数据
         Args:
             batch_size: 批次大小
             aug_factor: 数据增强倍数（1或8）
             problems: 可选，外部传入的 (batch, node, 3) 数据，用于测试
+            relaxation_d: 可选，外部传入的标量或 (batch,) 张量
         """
         if problems is None:
             # 训练模式：随机生成
@@ -80,12 +94,15 @@ class CTSPdEnv:
             # 测试模式：使用传入的数据
             loaded_problems = problems
             self.batch_size = int(problems.size(0))
+
+        d_values = self._make_relaxation_d(self.batch_size, loaded_problems.device, relaxation_d)
         
         # 数据增强
         if aug_factor > 1:
             if aug_factor == 8:
                 self.batch_size = self.batch_size * 8
                 loaded_problems = augment_xy_data_by_8_fold(loaded_problems)
+                d_values = d_values.repeat(8)
             else:
                 raise NotImplementedError
         
@@ -93,6 +110,8 @@ class CTSPdEnv:
         self.problems = loaded_problems
         self.node_xy = loaded_problems[:, :, :2]
         self.node_priorities = loaded_problems[:, :, 2]
+        self.relaxation_d = d_values.to(device=loaded_problems.device, dtype=torch.float)
+        self.d = self.relaxation_d
         
         # 初始化索引
         self.BATCH_IDX = torch.arange(self.batch_size)[:, None].expand(self.batch_size, self.pomo_size)
@@ -110,7 +129,8 @@ class CTSPdEnv:
         self.problems = problems_tensor
         self.node_xy = self.problems[:, :, :2]        # (1, n, 2)
         self.node_priorities = self.problems[:, :, 2]  # (1, n)
-        self.d = d
+        self.relaxation_d = torch.tensor([d], device=problems_tensor.device, dtype=torch.float)
+        self.d = self.relaxation_d
         
         # 重新初始化索引
         self.BATCH_IDX = torch.arange(self.batch_size)[:, None].expand(self.batch_size, self.pomo_size)
@@ -151,6 +171,9 @@ class CTSPdEnv:
 
         # CREATE STEP STATE
         step_state = Step_State(BATCH_IDX=self.BATCH_IDX, POMO_IDX=self.POMO_IDX)
+        if self.relaxation_d is None:
+            raise RuntimeError("load_problems must initialize relaxation_d before reset.")
+        step_state.relaxation_d = self.relaxation_d[:, None].expand(self.batch_size, self.pomo_size)
         step_state.ninf_mask = torch.zeros((self.batch_size, self.pomo_size, self.problem_size))
         self.step_state = step_state
         # CHANGE: 新增 - 应用d-松弛优先级规则（覆盖上面的零张量，屏蔽不符合优先级范围的节点）
@@ -158,7 +181,7 @@ class CTSPdEnv:
 
         reward = None
         done = False
-        return Reset_State(self.problems), reward, done
+        return Reset_State(self.problems, self.relaxation_d), reward, done
 
     def pre_step(self):
         if self.step_state is None:
@@ -214,6 +237,8 @@ class CTSPdEnv:
 
          # CHANGE: 更新Step_State中的current_min_priority（可选）
         step_state.current_min_priority = self.current_min_priority
+        if self.relaxation_d is not None:
+            step_state.relaxation_d = self.relaxation_d[:, None].expand(self.batch_size, self.pomo_size)
         
         # CHANGE: 重新应用d-松弛优先级掩码（这覆盖了原有的简单mask更新）
         self._apply_priority_mask()
@@ -240,13 +265,15 @@ class CTSPdEnv:
             or self.current_min_priority is None
             or self.node_priorities is None
             or self.visited_mask is None
+            or self.relaxation_d is None
         ):
             raise RuntimeError("reset must initialize priority mask state.")
 
         step_state = self.step_state
 
         p_min = self.current_min_priority.unsqueeze(dim=2)
-        p_max = p_min + self.d  # 允许的最高优先级
+        d_values = self.relaxation_d[:, None, None].to(device=p_min.device, dtype=p_min.dtype)
+        p_max = p_min + d_values  # 允许的最高优先级
         
         # 所有节点优先级: (batch, node) -> (batch, 1, node) 用于广播
         priorities = self.node_priorities.unsqueeze(dim=1)
@@ -263,6 +290,35 @@ class CTSPdEnv:
         # 注意：我们需要保留之前已访问节点的-inf标记，所以这里重新计算完整mask
         step_state.ninf_mask = torch.zeros_like(self.visited_mask, dtype=torch.float)
         step_state.ninf_mask.masked_fill_(combined_illegal, float('-inf'))
+
+    def _make_relaxation_d(self, batch_size, device, relaxation_d=None):
+        if relaxation_d is None:
+            relaxation_d = self.relaxation_d_setting
+
+        if isinstance(relaxation_d, str):
+            mode = relaxation_d.lower()
+            if mode in ('random', 'variable', 'sample', 'auto'):
+                return torch.randint(
+                    self.relaxation_d_min,
+                    self.relaxation_d_max + 1,
+                    (batch_size,),
+                    device=device,
+                    dtype=torch.long,
+                )
+            relaxation_d = int(relaxation_d)
+
+        if torch.is_tensor(relaxation_d):
+            d_values = relaxation_d.to(device=device, dtype=torch.long).flatten()
+            if d_values.numel() == 1:
+                d_values = d_values.expand(batch_size)
+            elif d_values.numel() != batch_size:
+                raise ValueError("relaxation_d tensor must have one value or batch_size values.")
+        else:
+            d_values = torch.full((batch_size,), int(relaxation_d), device=device, dtype=torch.long)
+
+        if (d_values < 0).any() or (d_values > self.num_groups - 1).any():
+            raise ValueError("relaxation_d values must be in [0, num_groups - 1].")
+        return d_values
 
     def _get_travel_distance(self):
         if self.batch_size is None or self.selected_node_list is None or self.node_xy is None:
@@ -285,4 +341,3 @@ class CTSPdEnv:
         travel_distances = segment_lengths.sum(dim=2)
         # shape: (batch, pomo)
         return travel_distances
-

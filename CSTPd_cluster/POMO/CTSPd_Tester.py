@@ -271,12 +271,9 @@ class CTSPdTester:
             num_groups = self.env_params.get('num_groups', 3)
             problems = get_random_problems(batch_size, self.env_params['problem_size'], num_groups)
             problems = problems.to(self.device)
-            
-            if aug_factor > 1:
-                problems = augment_xy_data_by_8_fold(problems)
-                batch_size = batch_size * aug_factor
-            
-            self.env.load_problems(batch_size, aug_factor=1, problems=problems)
+
+            self.env.load_problems(batch_size, aug_factor=aug_factor, problems=problems)
+            batch_size = int(self.env.batch_size)
             reset_state, _, _ = self.env.reset()
             self.model.pre_forward(reset_state)
 

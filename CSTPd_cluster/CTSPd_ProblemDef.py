@@ -7,6 +7,9 @@ import torch
 def get_random_problems(batch_size, problem_size, num_groups):
     node_xy = torch.rand(size=(batch_size, problem_size, 2))
 
+    if num_groups <= 0:
+        raise ValueError("num_groups must be positive")
+
     if problem_size >= num_groups:
         base_groups = torch.arange(num_groups).unsqueeze(dim=0).expand(batch_size, num_groups)
 

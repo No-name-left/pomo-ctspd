@@ -100,7 +100,7 @@ trainer_params = {
 
 logger_params = {
     'log_file': {
-        'desc': 'train__baseline_ctspd_n50',
+        'desc': 'train__baseline_ctspd_n50_g8_d1',
         'filename': 'run_log'
     }
 }

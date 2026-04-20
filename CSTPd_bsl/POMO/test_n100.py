@@ -32,6 +32,8 @@ from CSTPd_bsl.POMO.CTSPd_Tester import CTSPdTester as Tester
 env_params = {
     'problem_size': 100,
     'pomo_size': 100,
+    'num_groups': 8,
+    'relaxation_d': 1,
 }
 
 model_params = {
@@ -63,7 +65,7 @@ if tester_params['augmentation_enable']:
 
 logger_params = {
     'log_file': {
-        'desc': 'test__tsp100_longTrain',
+        'desc': 'test__ctspd_n100_g8_d1',
         'filename': 'log.txt'
     }
 }

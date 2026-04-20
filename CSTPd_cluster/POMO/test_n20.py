@@ -32,6 +32,8 @@ from CSTPd_cluster.POMO.CTSPd_Tester import CTSPdTester as Tester
 env_params = {
     'problem_size': 20,
     'pomo_size': 20,
+    'num_groups': 8,
+    'relaxation_d': 1,
 }
 
 model_params = {
@@ -63,7 +65,7 @@ if tester_params['augmentation_enable']:
 
 logger_params = {
     'log_file': {
-        'desc': 'test__ctspd_n20',
+        'desc': 'test__ctspd_n20_g8_d1',
         'filename': 'run_log'
     }
 }

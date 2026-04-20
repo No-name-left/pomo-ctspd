@@ -113,7 +113,7 @@ trainer_params = {
 
 logger_params = {
     'log_file': {
-        'desc': 'train__cluster_ctspd_n20',
+        'desc': 'train__cluster_ctspd_n20_g8_d1',
         'filename': 'run_log'
     }
 }

@@ -29,8 +29,8 @@ class CTSPdModel(nn.Module):
         current_node = state.current_node
 
         if current_node is None:
-            selected = torch.arange(pomo_size)[None, :].expand(batch_size, pomo_size)
-            prob = torch.ones(size=(batch_size, pomo_size))
+            selected = _select_initial_nodes(state, batch_size, pomo_size, encoded_nodes.device)
+            prob = torch.ones(size=(batch_size, pomo_size), device=encoded_nodes.device)
 
             encoded_first_node = _get_encoding(encoded_nodes, selected)
             # shape: (batch, pomo, embedding)
@@ -66,6 +66,24 @@ class CTSPdModel(nn.Module):
 
 
         return selected, prob
+
+
+def _select_initial_nodes(state, batch_size, pomo_size, device):
+    ninf_mask = state.ninf_mask
+    if ninf_mask is None:
+        return torch.arange(pomo_size, device=device)[None, :].expand(batch_size, pomo_size)
+
+    legal_mask = torch.isfinite(ninf_mask[:, 0, :]).to(device=device)
+    selected = torch.empty((batch_size, pomo_size), dtype=torch.long, device=device)
+    pomo_slots = torch.arange(pomo_size, device=device)
+
+    for batch_idx in range(batch_size):
+        legal_nodes = torch.nonzero(legal_mask[batch_idx], as_tuple=False).flatten()
+        if legal_nodes.numel() == 0:
+            raise RuntimeError("Initial CTSPd priority mask has no legal node.")
+        selected[batch_idx] = legal_nodes[pomo_slots % legal_nodes.numel()]
+
+    return selected
 
 
 def _get_encoding(encoded_nodes, node_index_to_pick):
