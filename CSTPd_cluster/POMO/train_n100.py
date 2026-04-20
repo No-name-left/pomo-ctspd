@@ -78,11 +78,13 @@ trainer_params = {
         'img_save_interval': 5,
         'log_image_params_1': {
             'json_foldername': 'log_image_style',
-            'filename': 'style_ctspd_20.json'
+            'filename': 'style_ctspd_20.json',
+            'title_prefix': 'CTSPd Cluster'
         },
         'log_image_params_2': {
             'json_foldername': 'log_image_style',
-            'filename': 'style_loss_1.json'
+            'filename': 'style_loss_1.json',
+            'title_prefix': 'CTSPd Cluster'
         },
     },
     'model_load': {

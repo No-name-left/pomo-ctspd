@@ -4,17 +4,6 @@ __pycache__/
 *.pyo
 *.pyd
 
-# 模型文件（绝对不能存Git）
-result/**/*.pt
-result/**/*.pth
-result/**/*.pkl
-
-# 测试结果（临时文件）
-TSP/POMO/result/
-CTSPd/POMO/result/
-CSTPd_cluster/POMO/result/
-CSTPd_bsl/POMO/result/
-
 # IDE设置
 .vscode/
 .idea/

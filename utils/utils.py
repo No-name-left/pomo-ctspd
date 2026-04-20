@@ -455,10 +455,11 @@ def _build_log_image_plt(img_params,
     
     plt.grid(config["grid"], alpha=0.3, linestyle='--')
     
+    title_prefix = img_params.get('title_prefix', 'CTSPd Baseline')
     if is_loss_plot:
-        plt.title('POMO Training Loss Curve', fontsize=14, fontweight='bold', pad=15)
+        plt.title(f'{title_prefix} Training Loss Curve', fontsize=14, fontweight='bold', pad=15)
     elif is_score_plot:
-        plt.title('POMO Training Score Curve', fontsize=14, fontweight='bold', pad=15)
+        plt.title(f'{title_prefix} Training Score Curve', fontsize=14, fontweight='bold', pad=15)
 
 
 def copy_all_src(dst_root):
