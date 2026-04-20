@@ -10,7 +10,7 @@ base.model_params.update({
 
 base.trainer_params['logging']['log_image_params_1']['title_prefix'] = 'CTSPd Cluster w/o Fusion Gate'
 base.trainer_params['logging']['log_image_params_2']['title_prefix'] = 'CTSPd Cluster w/o Fusion Gate'
-base.logger_params['log_file']['desc'] = 'train__cluster_ctspd_n100_g8_d1_wo_fusion_gate__160epoch_bs256'
+base.logger_params['log_file']['desc'] = 'cluster_n100_d1_wo_fusion_gate'
 
 
 if __name__ == "__main__":

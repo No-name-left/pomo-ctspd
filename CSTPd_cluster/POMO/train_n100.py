@@ -106,7 +106,7 @@ trainer_params = {
 
 logger_params = {
     'log_file': {
-        'desc': 'train__cluster_ctspd_n100_g8_d1__160epoch_bs256',
+        'desc': 'cluster_n100_d1',
         'filename': 'log.txt'
     }
 }
