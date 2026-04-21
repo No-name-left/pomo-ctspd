@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Optional
 
 
 class CTSPdModel(nn.Module):
@@ -12,11 +13,14 @@ class CTSPdModel(nn.Module):
 
         self.encoder = CTSPd_Encoder(**model_params)
         self.decoder = CTSPd_Decoder(**model_params)
-        self.encoded_nodes = None
+        self.encoded_nodes: Optional[torch.Tensor] = None
+        self.group_ids: Optional[torch.Tensor] = None
         # shape: (batch, problem, EMBEDDING_DIM)
 
     def pre_forward(self, reset_state):
-        self.encoded_nodes = self.encoder(reset_state.problems)
+        problems = reset_state.problems
+        self.group_ids = problems[:, :, 2].long()
+        self.encoded_nodes = self.encoder(problems)
         # shape: (batch, problem, EMBEDDING_DIM)
         self.decoder.set_kv(self.encoded_nodes)
 
@@ -46,7 +50,12 @@ class CTSPdModel(nn.Module):
 
             encoded_last_node = _get_encoding(encoded_nodes, current_node)
             # shape: (batch, pomo, embedding)
-            probs = self.decoder(encoded_last_node, ninf_mask=ninf_mask)
+            probs = self.decoder(
+                encoded_last_node,
+                ninf_mask=ninf_mask,
+                group_ids=self.group_ids,
+                current_min_priority=state.current_min_priority,
+            )
             # shape: (batch, pomo, problem)
 
             if self.training or self.model_params['eval_type'] == 'softmax':
@@ -130,6 +139,8 @@ class CTSPd_Encoder(nn.Module):
 
     def set_training_epoch(self, epoch, total_epochs):
         for layer in self.layers:
+            if not isinstance(layer, EncoderLayer):
+                raise TypeError("CTSPd_Encoder.layers must contain EncoderLayer instances.")
             layer.set_training_epoch(epoch, total_epochs)
 
     def forward(self, data):
@@ -155,6 +166,8 @@ class CTSPd_Encoder(nn.Module):
         
         out = embedded_input
         for layer in self.layers:
+            if not isinstance(layer, EncoderLayer):
+                raise TypeError("CTSPd_Encoder.layers must contain EncoderLayer instances.")
             out = layer(out, group_ids=group_ids)
         
         return out
@@ -167,6 +180,7 @@ class EncoderLayer(nn.Module):
         embedding_dim = self.model_params['embedding_dim']
         head_num = self.model_params['head_num']
         qkv_dim = self.model_params['qkv_dim']
+        num_groups = int(self.model_params.get('num_groups', 5))
         self.cluster_bias_mode = self.model_params.get('cluster_bias_mode', 'scheduled').lower()
         self.same_group_bias_init = float(self.model_params.get('same_group_bias_init', 0.1))
         self.same_group_bias_final = float(self.model_params.get('same_group_bias_final', 1.25))
@@ -178,6 +192,10 @@ class EncoderLayer(nn.Module):
         self.priority_distance_bias = float(self.model_params.get('priority_distance_bias', 0.15))
         self.priority_distance_tau = max(1e-6, float(self.model_params.get('priority_distance_tau', 1.0)))
         self.exclude_self_group_bias = self.model_params.get('exclude_self_group_bias', True)
+        self.relation_bias_mode = self.model_params.get('relation_bias_mode', 'none').lower()
+        self.relation_bias_max_distance = max(0, int(self.model_params.get('relation_bias_max_distance', num_groups - 1)))
+        self.relation_bias_init = float(self.model_params.get('relation_bias_init', 0.2))
+        self.relation_bias_tau = max(1e-6, float(self.model_params.get('relation_bias_tau', 1.0)))
 
         self.Wq = nn.Linear(embedding_dim, head_num * qkv_dim, bias=False)
         self.Wk = nn.Linear(embedding_dim, head_num * qkv_dim, bias=False)
@@ -188,6 +206,8 @@ class EncoderLayer(nn.Module):
         self.feedForward = Feed_Forward_Module(**model_params)
         self.addAndNormalization2 = Add_And_Normalization_Module(**model_params)
 
+        self.same_group_bias_runtime: torch.Tensor
+        self.same_group_bias_param: Optional[nn.Parameter]
         self.register_buffer(
             'same_group_bias_runtime',
             torch.tensor(self.same_group_bias_init, dtype=torch.float32),
@@ -196,6 +216,13 @@ class EncoderLayer(nn.Module):
             self.same_group_bias_param = nn.Parameter(torch.tensor(self.same_group_bias_init, dtype=torch.float32))
         else:
             self.same_group_bias_param = None
+        self.relation_attention_bias: Optional[nn.Parameter]
+        if self.relation_bias_mode in ('learnable', 'headwise', 'relative', 'relative_learnable'):
+            distances = torch.arange(self.relation_bias_max_distance + 1, dtype=torch.float32)
+            init = self.relation_bias_init * torch.exp(-distances / self.relation_bias_tau)
+            self.relation_attention_bias = nn.Parameter(init[None, :].repeat(head_num, 1))
+        else:
+            self.relation_attention_bias = None
 
     def set_training_epoch(self, epoch, total_epochs):
         if self.cluster_bias_mode != 'scheduled':
@@ -232,11 +259,14 @@ class EncoderLayer(nn.Module):
         return out3
         # shape: (batch, problem, EMBEDDING_DIM)
 
-    def _current_same_group_bias(self):
+    def _current_same_group_bias(self) -> Optional[torch.Tensor]:
         if self.cluster_bias_mode in ('none', 'off', 'disabled'):
             return None
         if self.cluster_bias_mode == 'learnable':
-            bias = F.softplus(self.same_group_bias_param)
+            same_group_bias_param = self.same_group_bias_param
+            if same_group_bias_param is None:
+                raise RuntimeError("cluster_bias_mode='learnable' requires same_group_bias_param.")
+            bias = F.softplus(same_group_bias_param)
         elif self.cluster_bias_mode == 'fixed':
             bias = torch.tensor(self.same_group_bias_final, device=self.same_group_bias_runtime.device)
         else:
@@ -248,9 +278,12 @@ class EncoderLayer(nn.Module):
             return None
 
         same_group_bias = self._current_same_group_bias()
-        use_same_group = same_group_bias is not None and float(same_group_bias.detach().cpu()) > 0
+        use_same_group = False
+        if same_group_bias is not None:
+            use_same_group = float(same_group_bias.detach().cpu()) > 0
         use_distance_bias = self.priority_distance_bias > 0
-        if not use_same_group and not use_distance_bias:
+        use_relation_bias = self.relation_attention_bias is not None
+        if not use_same_group and not use_distance_bias and not use_relation_bias:
             return None
 
         g_i = group_ids.unsqueeze(dim=1).unsqueeze(dim=3)
@@ -272,6 +305,8 @@ class EncoderLayer(nn.Module):
         )
 
         if use_same_group:
+            if same_group_bias is None:
+                raise RuntimeError("same_group_bias is unexpectedly unset.")
             same_group_mask = (g_i == g_j)
             if eye is not None:
                 same_group_mask = same_group_mask & (~eye)
@@ -284,7 +319,31 @@ class EncoderLayer(nn.Module):
                 distance_mask = distance_mask.masked_fill(eye, 0.0)
             attention_bias = attention_bias + distance_mask * self.priority_distance_bias
 
+        if use_relation_bias:
+            relation_attention_bias = self.relation_attention_bias
+            if relation_attention_bias is None:
+                raise RuntimeError("relation_attention_bias is unexpectedly unset.")
+            relation_bias = self._make_relation_attention_bias(
+                group_ids,
+                relation_attention_bias,
+                problem_size,
+                device,
+            )
+            if eye is not None:
+                relation_bias = relation_bias.masked_fill(eye, 0.0)
+            attention_bias = attention_bias + relation_bias
+
         return attention_bias
+
+    def _make_relation_attention_bias(self, group_ids, relation_attention_bias, problem_size, device):
+        group_delta = (group_ids[:, :, None] - group_ids[:, None, :]).abs()
+        group_delta = group_delta.clamp(max=self.relation_bias_max_distance).long()
+        flat_delta = group_delta.reshape(-1).to(device=relation_attention_bias.device)
+
+        head_num = int(relation_attention_bias.size(0))
+        relation_bias = relation_attention_bias.index_select(dim=1, index=flat_delta)
+        relation_bias = relation_bias.reshape(head_num, group_ids.size(0), problem_size, problem_size)
+        return relation_bias.permute(1, 0, 2, 3).to(device)
 
 
 ########################################
@@ -298,6 +357,18 @@ class CTSPd_Decoder(nn.Module):
         embedding_dim = self.model_params['embedding_dim']
         head_num = self.model_params['head_num']
         qkv_dim = self.model_params['qkv_dim']
+        num_groups = int(self.model_params.get('num_groups', 5))
+        self.use_decoder_priority_bias = bool(self.model_params.get('use_decoder_priority_bias', False))
+        self.decoder_priority_bias_mode = self.model_params.get('decoder_priority_bias_mode', 'learnable').lower()
+        self.decoder_priority_bias_max_delta = max(
+            0,
+            int(self.model_params.get('decoder_priority_bias_max_delta', num_groups - 1)),
+        )
+        self.decoder_priority_bias_init = float(self.model_params.get('decoder_priority_bias_init', 0.2))
+        self.decoder_priority_bias_tau = max(
+            1e-6,
+            float(self.model_params.get('decoder_priority_bias_tau', 1.0)),
+        )
 
         self.Wq_first = nn.Linear(embedding_dim, head_num * qkv_dim, bias=False)
         self.Wq_last = nn.Linear(embedding_dim, head_num * qkv_dim, bias=False)
@@ -306,10 +377,17 @@ class CTSPd_Decoder(nn.Module):
 
         self.multi_head_combine = nn.Linear(head_num * qkv_dim, embedding_dim)
 
-        self.k = None  # saved key, for multi-head attention
-        self.v = None  # saved value, for multi-head_attention
-        self.single_head_key = None  # saved, for single-head attention
-        self.q_first = None  # saved q1, for multi-head attention
+        self.k: Optional[torch.Tensor] = None  # saved key, for multi-head attention
+        self.v: Optional[torch.Tensor] = None  # saved value, for multi-head_attention
+        self.single_head_key: Optional[torch.Tensor] = None  # saved, for single-head attention
+        self.q_first: Optional[torch.Tensor] = None  # saved q1, for multi-head attention
+        self.decoder_priority_bias_table: Optional[nn.Parameter]
+        if self.use_decoder_priority_bias and self.decoder_priority_bias_mode == 'learnable':
+            deltas = torch.arange(self.decoder_priority_bias_max_delta + 1, dtype=torch.float32)
+            init = self.decoder_priority_bias_init * torch.exp(-deltas / self.decoder_priority_bias_tau)
+            self.decoder_priority_bias_table = nn.Parameter(init)
+        else:
+            self.decoder_priority_bias_table = None
 
     def set_kv(self, encoded_nodes):
         # encoded_nodes.shape: (batch, problem, embedding)
@@ -328,7 +406,7 @@ class CTSPd_Decoder(nn.Module):
         self.q_first = reshape_by_heads(self.Wq_first(encoded_q1), head_num=head_num)
         # shape: (batch, head_num, n, qkv_dim)
 
-    def forward(self, encoded_last_node, ninf_mask):
+    def forward(self, encoded_last_node, ninf_mask, group_ids=None, current_min_priority=None):
         # encoded_last_node.shape: (batch, pomo, embedding)
         # ninf_mask.shape: (batch, pomo, problem)
 
@@ -367,12 +445,42 @@ class CTSPd_Decoder(nn.Module):
 
         score_clipped = logit_clipping * torch.tanh(score_scaled)
 
+        priority_bias = self._make_decoder_priority_bias(group_ids, current_min_priority, ninf_mask)
+        if priority_bias is not None:
+            score_clipped = score_clipped + priority_bias
+
         score_masked = score_clipped + ninf_mask
 
         probs = F.softmax(score_masked, dim=2)
         # shape: (batch, pomo, problem)
 
         return probs
+
+    def _make_decoder_priority_bias(self, group_ids, current_min_priority, ninf_mask):
+        if not self.use_decoder_priority_bias:
+            return None
+        if group_ids is None or current_min_priority is None:
+            return None
+
+        priority_delta = group_ids[:, None, :].to(current_min_priority.device) - current_min_priority[:, :, None]
+        priority_delta = priority_delta.clamp(min=0, max=self.decoder_priority_bias_max_delta).long()
+
+        if self.decoder_priority_bias_mode == 'learnable':
+            bias_table = self.decoder_priority_bias_table
+            if bias_table is None:
+                raise RuntimeError("decoder_priority_bias_table is unexpectedly unset.")
+            flat_delta = priority_delta.reshape(-1).to(device=bias_table.device)
+            priority_bias = bias_table.index_select(dim=0, index=flat_delta).reshape(priority_delta.shape)
+            priority_bias = priority_bias.to(device=ninf_mask.device)
+        elif self.decoder_priority_bias_mode == 'fixed':
+            priority_bias = self.decoder_priority_bias_init * torch.exp(
+                -priority_delta.float() / self.decoder_priority_bias_tau
+            )
+        else:
+            raise ValueError("Unsupported decoder_priority_bias_mode: {}".format(self.decoder_priority_bias_mode))
+
+        legal_mask = torch.isfinite(ninf_mask)
+        return priority_bias.masked_fill(~legal_mask, 0.0)
 
 
 ########################################

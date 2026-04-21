@@ -36,10 +36,10 @@ class CTSPdEnv:
         # Const @INIT
         ####################################
         self.env_params = env_params
-        self.problem_size = env_params['problem_size']
-        self.pomo_size = env_params['pomo_size']
-         # CHANGE: 新增CTSP-d参数读取
-        self.num_groups = env_params.get('num_groups', 5)  # 优先级组数
+        self.problem_size = int(env_params['problem_size'])
+        self.pomo_size = int(env_params['pomo_size'])
+        # CHANGE: 新增CTSP-d参数读取
+        self.num_groups = int(env_params.get('num_groups', 5))  # 优先级组数
         if self.num_groups <= 0:
             raise ValueError("num_groups must be positive")
         self.relaxation_d_setting = env_params.get('relaxation_d', 1)
@@ -48,34 +48,35 @@ class CTSPdEnv:
         self.relaxation_d_max = self.num_groups - 1 if raw_d_max is None else int(raw_d_max)
         if not (0 <= self.relaxation_d_min <= self.relaxation_d_max <= self.num_groups - 1):
             raise ValueError("relaxation_d range must satisfy 0 <= min <= max <= num_groups - 1")
-        self.relaxation_d = None
-        self.d = None
+        self.relaxation_d: Optional[torch.Tensor] = None
+        self.d: Optional[torch.Tensor] = None
 
         # Const @Load_Problem
         ####################################
-        self.batch_size = None
-        self.BATCH_IDX = None
-        self.POMO_IDX = None
+        self.batch_size: Optional[int] = None
+        self.BATCH_IDX: Optional[torch.Tensor] = None
+        self.POMO_IDX: Optional[torch.Tensor] = None
         # IDX.shape: (batch, pomo)
-        self.problems = None
+        self.problems: Optional[torch.Tensor] = None
         # shape: (batch, node, 3)  # [x, y, priority]
         
         # CHANGE: 新增成员变量，用于存储分离后的数据
-        self.node_xy = None           # shape: (batch, node, 2)
-        self.node_priorities = None   # shape: (batch, node)
+        self.node_xy: Optional[torch.Tensor] = None           # shape: (batch, node, 2)
+        self.node_priorities: Optional[torch.Tensor] = None   # shape: (batch, node)
+        self.group_ids: Optional[torch.Tensor] = None         # shape: (batch, node), model-side priority groups
 
         # Dynamic
         ####################################
-        self.selected_count = None
-        self.current_node = None
+        self.selected_count: Optional[int] = None
+        self.current_node: Optional[torch.Tensor] = None
         # shape: (batch, pomo)
-        self.selected_node_list = None
+        self.selected_node_list: Optional[torch.Tensor] = None
         # shape: (batch, pomo, 0~problem)
 
         # CHANGE: 新增动态状态变量
-        self.visited_mask = None      # shape: (batch, pomo, node), bool
+        self.visited_mask: Optional[torch.Tensor] = None      # shape: (batch, pomo, node), bool
         self.step_state: Optional[Step_State] = None
-        self.current_min_priority = None  # shape: (batch, pomo), 当前未访问节点中的最高优先级
+        self.current_min_priority: Optional[torch.Tensor] = None  # shape: (batch, pomo)，当前未访问节点中的最高优先级
 
     def load_problems(self, batch_size, aug_factor=1, problems=None, relaxation_d=None):
         """
@@ -88,19 +89,19 @@ class CTSPdEnv:
         """
         if problems is None:
             # 训练模式：随机生成
-            self.batch_size = int(batch_size)
-            loaded_problems = get_random_problems(self.batch_size, self.problem_size, self.num_groups)
+            loaded_batch_size = int(batch_size)
+            loaded_problems = get_random_problems(loaded_batch_size, self.problem_size, self.num_groups)
         else:
             # 测试模式：使用传入的数据
             loaded_problems = problems
-            self.batch_size = int(problems.size(0))
+            loaded_batch_size = int(problems.size(0))
 
-        d_values = self._make_relaxation_d(self.batch_size, loaded_problems.device, relaxation_d)
+        d_values = self._make_relaxation_d(loaded_batch_size, loaded_problems.device, relaxation_d)
         
         # 数据增强
         if aug_factor > 1:
             if aug_factor == 8:
-                self.batch_size = self.batch_size * 8
+                loaded_batch_size *= 8
                 loaded_problems = augment_xy_data_by_8_fold(loaded_problems)
                 d_values = d_values.repeat(8)
             else:
@@ -112,10 +113,11 @@ class CTSPdEnv:
         self.node_priorities = loaded_problems[:, :, 2]
         self.relaxation_d = d_values.to(device=loaded_problems.device, dtype=torch.float)
         self.d = self.relaxation_d
+        self.batch_size = loaded_batch_size
         
         # 初始化索引
-        self.BATCH_IDX = torch.arange(self.batch_size)[:, None].expand(self.batch_size, self.pomo_size)
-        self.POMO_IDX = torch.arange(self.pomo_size)[None, :].expand(self.batch_size, self.pomo_size)
+        self.BATCH_IDX = torch.arange(loaded_batch_size)[:, None].expand(loaded_batch_size, self.pomo_size)
+        self.POMO_IDX = torch.arange(self.pomo_size)[None, :].expand(loaded_batch_size, self.pomo_size)
 
     def load_problems_from_file(self, problems_tensor, d):
         """
@@ -127,8 +129,8 @@ class CTSPdEnv:
         """
         self.batch_size = 1
         self.problems = problems_tensor
-        self.node_xy = self.problems[:, :, :2]        # (1, n, 2)
-        self.node_priorities = self.problems[:, :, 2]  # (1, n)
+        self.node_xy = problems_tensor[:, :, :2]        # (1, n, 2)
+        self.node_priorities = problems_tensor[:, :, 2]  # (1, n)
         self.relaxation_d = torch.tensor([d], device=problems_tensor.device, dtype=torch.float)
         self.d = self.relaxation_d
         
@@ -143,46 +145,52 @@ class CTSPdEnv:
         """
         if self.selected_node_list is None:
             raise RuntimeError("reset must be called before reading the current tour.")
-        return self.selected_node_list[0, 0].cpu().numpy().tolist()  # 返回第一个batch第一个pomo的路径
+        selected_node_list = self.selected_node_list
+        return selected_node_list[0, 0].cpu().numpy().tolist()  # 返回第一个batch第一个pomo的路径
 
     def reset(self):
+        batch_size = self.batch_size
+        batch_idx = self.BATCH_IDX
+        pomo_idx = self.POMO_IDX
+        problems = self.problems
+        node_priorities = self.node_priorities
+        relaxation_d = self.relaxation_d
         if (
-            self.batch_size is None
-            or self.BATCH_IDX is None
-            or self.POMO_IDX is None
-            or self.problems is None
-            or self.node_priorities is None
+            batch_size is None
+            or batch_idx is None
+            or pomo_idx is None
+            or problems is None
+            or node_priorities is None
+            or relaxation_d is None
         ):
             raise RuntimeError("load_problems must be called before reset.")
 
         self.selected_count = 0
         self.current_node = None
         # shape: (batch, pomo)
-        self.selected_node_list = torch.zeros((self.batch_size, self.pomo_size, 0), dtype=torch.long)
+        self.selected_node_list = torch.zeros((batch_size, self.pomo_size, 0), dtype=torch.long)
         # shape: (batch, pomo, 0~problem)
 
         # CHANGE: 初始化访问掩码（False表示未访问）
-        self.visited_mask = torch.zeros((self.batch_size, self.pomo_size, self.problem_size), dtype=torch.bool)
+        self.visited_mask = torch.zeros((batch_size, self.pomo_size, self.problem_size), dtype=torch.bool)
 
         # CHANGE: 计算初始current_min_priority（全局最小优先级）
         # 在未访问节点中找最小值（初始时所有节点都未访问）
-        global_min = self.node_priorities.min(dim=1, keepdim=True)[0]  # (batch, 1)
-        self.current_min_priority = global_min.expand(self.batch_size, self.pomo_size)  # (batch, pomo)
+        global_min = node_priorities.min(dim=1, keepdim=True)[0]  # (batch, 1)
+        self.current_min_priority = global_min.expand(batch_size, self.pomo_size)  # (batch, pomo)
 
         # CREATE STEP STATE
-        step_state = Step_State(BATCH_IDX=self.BATCH_IDX, POMO_IDX=self.POMO_IDX)
-        if self.relaxation_d is None:
-            raise RuntimeError("load_problems must initialize relaxation_d before reset.")
-        step_state.relaxation_d = self.relaxation_d[:, None].expand(self.batch_size, self.pomo_size)
-        step_state.ninf_mask = torch.zeros((self.batch_size, self.pomo_size, self.problem_size))
+        step_state = Step_State(BATCH_IDX=batch_idx, POMO_IDX=pomo_idx)
+        step_state.relaxation_d = relaxation_d[:, None].expand(batch_size, self.pomo_size)
+        step_state.ninf_mask = torch.zeros((batch_size, self.pomo_size, self.problem_size))
         self.step_state = step_state
         # CHANGE: 新增 - 应用d-松弛优先级规则（覆盖上面的零张量，屏蔽不符合优先级范围的节点）
         self._apply_priority_mask()
-        self.group_ids = self.node_priorities.long()  # (batch, problem)，用于传入模型
+        self.group_ids = node_priorities.long()  # (batch, problem)，用于传入模型
 
         reward = None
         done = False
-        return Reset_State(self.problems, self.relaxation_d), reward, done
+        return Reset_State(problems, relaxation_d), reward, done
 
     def pre_step(self):
         if self.step_state is None:
@@ -195,57 +203,69 @@ class CTSPdEnv:
 
     def step(self, selected):
         # selected.shape: (batch, pomo)
+        step_state = self.step_state
+        selected_count = self.selected_count
+        selected_node_list = self.selected_node_list
+        batch_idx = self.BATCH_IDX
+        pomo_idx = self.POMO_IDX
+        visited_mask = self.visited_mask
+        node_priorities = self.node_priorities
+        current_min_priority = self.current_min_priority
+        batch_size = self.batch_size
+        relaxation_d = self.relaxation_d
         if (
-            self.step_state is None
-            or self.selected_count is None
-            or self.selected_node_list is None
-            or self.BATCH_IDX is None
-            or self.POMO_IDX is None
-            or self.visited_mask is None
-            or self.node_priorities is None
+            step_state is None
+            or selected_count is None
+            or selected_node_list is None
+            or batch_idx is None
+            or pomo_idx is None
+            or visited_mask is None
+            or node_priorities is None
+            or current_min_priority is None
+            or batch_size is None
+            or relaxation_d is None
         ):
             raise RuntimeError("reset must be called before step.")
 
-        step_state = self.step_state
-
-        self.selected_count += 1
+        selected_count += 1
+        self.selected_count = selected_count
         self.current_node = selected
         # shape: (batch, pomo)
-        self.selected_node_list = torch.cat((self.selected_node_list, self.current_node[:, :, None]), dim=2)
+        self.selected_node_list = torch.cat((selected_node_list, selected[:, :, None]), dim=2)
         # shape: (batch, pomo, 0~problem)
 
         # UPDATE STEP STATE
-        step_state.current_node = self.current_node
+        step_state.current_node = selected
         # shape: (batch, pomo)
         # CHANGE: 更新访问掩码（标记已访问节点）
-        self.visited_mask[self.BATCH_IDX, self.POMO_IDX, self.current_node] = True
+        visited_mask[batch_idx, pomo_idx, selected] = True
         
         # CHANGE: 更新ninf_mask的基础部分（已访问节点设为-inf）
         ninf_mask = step_state.ninf_mask
         if ninf_mask is None:
             raise RuntimeError("reset must initialize ninf_mask before step.")
-        ninf_mask[self.BATCH_IDX, self.POMO_IDX, self.current_node] = float('-inf')
+        ninf_mask[batch_idx, pomo_idx, selected] = float('-inf')
         # 注意：这里我们保留原有的"已访问节点置-inf"逻辑，但接下来会重新计算完整的优先级掩码
 
         # CHANGE: 重新计算current_min_priority（在未访问节点中找最小优先级）
-        if self.selected_count < self.problem_size:
+        if selected_count < self.problem_size:
             # 将已访问节点的优先级设为无穷大，这样min不会选到它们
             # 扩展维度以匹配visited_mask: (batch, node) -> (batch, pomo, node)
-            expanded_priorities = self.node_priorities.float().unsqueeze(dim=1).expand(-1, self.pomo_size, -1).clone()
-            expanded_priorities[self.visited_mask] = float('inf')
+            expanded_priorities = node_priorities.float().unsqueeze(dim=1).expand(-1, self.pomo_size, -1).clone()
+            expanded_priorities[visited_mask] = float('inf')
             # 在未访问节点中找最小值（即最高优先级）
-            self.current_min_priority = expanded_priorities.min(dim=2)[0]  # (batch, pomo)
+            current_min_priority = expanded_priorities.min(dim=2)[0]  # (batch, pomo)
+            self.current_min_priority = current_min_priority
 
-         # CHANGE: 更新Step_State中的current_min_priority
-        step_state.current_min_priority = self.current_min_priority
-        if self.relaxation_d is not None:
-            step_state.relaxation_d = self.relaxation_d[:, None].expand(self.batch_size, self.pomo_size)
+        # CHANGE: 更新Step_State中的current_min_priority
+        step_state.current_min_priority = current_min_priority
+        step_state.relaxation_d = relaxation_d[:, None].expand(batch_size, self.pomo_size)
         
         # CHANGE: 重新应用d-松弛优先级掩码（这覆盖了原有的简单mask更新）
         self._apply_priority_mask()
 
         # returning values
-        done = (self.selected_count == self.problem_size)
+        done = (selected_count == self.problem_size)
         if done:
             reward = -self._get_travel_distance()  # note the minus sign!
         else:
@@ -253,7 +273,7 @@ class CTSPdEnv:
 
         return step_state, reward, done
 
-     # CHANGE: 新增核心方法 - 应用d-松弛优先级掩码
+    # CHANGE: 新增核心方法 - 应用d-松弛优先级掩码
     def _apply_priority_mask(self):
         """
         根据d-松弛优先级规则更新ninf_mask。
@@ -261,23 +281,26 @@ class CTSPdEnv:
         则只能访问优先级在[p, p+d]范围内的节点。
         """
         # p_min: (batch, pomo) -> (batch, pomo, 1) 用于广播
+        step_state = self.step_state
+        current_min_priority = self.current_min_priority
+        node_priorities = self.node_priorities
+        visited_mask = self.visited_mask
+        relaxation_d = self.relaxation_d
         if (
-            self.step_state is None
-            or self.current_min_priority is None
-            or self.node_priorities is None
-            or self.visited_mask is None
-            or self.relaxation_d is None
+            step_state is None
+            or current_min_priority is None
+            or node_priorities is None
+            or visited_mask is None
+            or relaxation_d is None
         ):
             raise RuntimeError("reset must initialize priority mask state.")
 
-        step_state = self.step_state
-
-        p_min = self.current_min_priority.unsqueeze(dim=2)
-        d_values = self.relaxation_d[:, None, None].to(device=p_min.device, dtype=p_min.dtype)
+        p_min = current_min_priority.unsqueeze(dim=2)
+        d_values = relaxation_d[:, None, None].to(device=p_min.device, dtype=p_min.dtype)
         p_max = p_min + d_values  # 允许的最高优先级
         
         # 所有节点优先级: (batch, node) -> (batch, 1, node) 用于广播
-        priorities = self.node_priorities.unsqueeze(dim=1)
+        priorities = node_priorities.unsqueeze(dim=1)
         
         # 非法条件：优先级 < p_min（更高的优先级未访问完）或 > p_max（超出松弛范围）
         illegal_low = priorities < p_min   # 优先级比当前最小值还小（数值更小=更紧急）
@@ -285,11 +308,11 @@ class CTSPdEnv:
         illegal_priority = illegal_low | illegal_high
         
         # 合并非法条件：已访问 或 优先级不符合要求
-        combined_illegal = self.visited_mask | illegal_priority
+        combined_illegal = visited_mask | illegal_priority
         
         # 更新mask：非法位置为-inf，合法位置保持原值（或设为0）
         # 注意：我们需要保留之前已访问节点的-inf标记，所以这里重新计算完整mask
-        step_state.ninf_mask = torch.zeros_like(self.visited_mask, dtype=torch.float)
+        step_state.ninf_mask = torch.zeros_like(visited_mask, dtype=torch.float)
         step_state.ninf_mask.masked_fill_(combined_illegal, float('-inf'))
 
     def _make_relaxation_d(self, batch_size, device, relaxation_d=None):
@@ -322,15 +345,18 @@ class CTSPdEnv:
         return d_values
 
     def _get_travel_distance(self):
-        if self.batch_size is None or self.selected_node_list is None or self.node_xy is None:
+        batch_size = self.batch_size
+        selected_node_list = self.selected_node_list
+        node_xy = self.node_xy
+        if batch_size is None or selected_node_list is None or node_xy is None:
             raise RuntimeError("reset must be called before calculating travel distance.")
 
         # CHANGE: 使用分离后的self.node_xy而不是self.problems（因为problems现在包含3维）
-        gathering_index = self.selected_node_list.unsqueeze(dim=3).expand(self.batch_size, -1, self.problem_size, 2)
+        gathering_index = selected_node_list.unsqueeze(dim=3).expand(batch_size, -1, self.problem_size, 2)
         # shape: (batch, pomo, problem, 2)
         
         # CHANGE: 使用self.node_xy（仅坐标部分）
-        seq_expanded = self.node_xy[:, None, :, :].expand(self.batch_size, self.pomo_size, self.problem_size, 2)
+        seq_expanded = node_xy[:, None, :, :].expand(batch_size, self.pomo_size, self.problem_size, 2)
 
         ordered_seq = seq_expanded.gather(dim=2, index=gathering_index)
         # shape: (batch, pomo, problem, 2)

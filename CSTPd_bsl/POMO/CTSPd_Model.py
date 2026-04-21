@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Optional
 
 
 class CTSPdModel(nn.Module):
@@ -12,7 +13,7 @@ class CTSPdModel(nn.Module):
 
         self.encoder = CTSPd_Encoder(**model_params)
         self.decoder = CTSPd_Decoder(**model_params)
-        self.encoded_nodes = None
+        self.encoded_nodes: Optional[torch.Tensor] = None
         # shape: (batch, problem, EMBEDDING_DIM)
 
     def pre_forward(self, reset_state):
@@ -125,6 +126,8 @@ class CTSPd_Encoder(nn.Module):
 
         out = embedded_input
         for layer in self.layers:
+            if not isinstance(layer, EncoderLayer):
+                raise TypeError("CTSPd_Encoder.layers must contain EncoderLayer instances.")
             out = layer(out)
 
         return out
@@ -189,10 +192,10 @@ class CTSPd_Decoder(nn.Module):
 
         self.multi_head_combine = nn.Linear(head_num * qkv_dim, embedding_dim)
 
-        self.k = None  # saved key, for multi-head attention
-        self.v = None  # saved value, for multi-head_attention
-        self.single_head_key = None  # saved, for single-head attention
-        self.q_first = None  # saved q1, for multi-head attention
+        self.k: Optional[torch.Tensor] = None  # saved key, for multi-head attention
+        self.v: Optional[torch.Tensor] = None  # saved value, for multi-head_attention
+        self.single_head_key: Optional[torch.Tensor] = None  # saved, for single-head attention
+        self.q_first: Optional[torch.Tensor] = None  # saved q1, for multi-head attention
 
     def set_kv(self, encoded_nodes):
         # encoded_nodes.shape: (batch, problem, embedding)
@@ -293,7 +296,7 @@ def multi_head_attention(q, k, v, rank2_ninf_mask=None, rank3_ninf_mask=None):
     score = torch.matmul(q, k.transpose(dim0=2, dim1=3))
     # shape: (batch, head_num, n, problem)
 
-    score_scaled = score / torch.sqrt(torch.tensor(key_dim, dtype=torch.float))
+    score_scaled = score / torch.sqrt(torch.tensor(key_dim, dtype=torch.float, device=score.device))
     if rank2_ninf_mask is not None:
         score_scaled = score_scaled + rank2_ninf_mask[:, None, None, :].expand(batch_s, head_num, n, input_s)
     if rank3_ninf_mask is not None:

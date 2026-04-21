@@ -9,8 +9,8 @@ from glob import glob
 
 from CSTPd_cluster.POMO.CTSPd_Env import CTSPdEnv as Env
 from CSTPd_cluster.POMO.CTSPd_Model import CTSPdModel as Model
-from CSTPd_cluster.CTSPd_ProblemDef import get_random_problems, augment_xy_data_by_8_fold, parse_ctspd_file
-from utils.utils import *
+from CSTPd_cluster.CTSPd_ProblemDef import get_random_problems, parse_ctspd_file
+from utils.utils import AverageMeter, TimeEstimator, get_result_folder
 
 
 class CTSPdTester:
@@ -33,7 +33,9 @@ class CTSPdTester:
         else:
             device = torch.device('cpu')
         torch.set_default_dtype(torch.float32)
-        torch.set_default_device(device)
+        set_default_device = getattr(torch, 'set_default_device', None)
+        if set_default_device is not None:
+            set_default_device(device)
         self.device = device
 
         # Restore model
@@ -50,6 +52,7 @@ class CTSPdTester:
 
         # utility
         self.time_estimator = TimeEstimator()
+        self._file_aug_warning_emitted = False
         
         # For file-based testing
         self.test_data_dir = tester_params.get('test_data_dir', None)
@@ -195,7 +198,7 @@ class CTSPdTester:
         # reconstructed features, so geometric augmentation is not length-preserving here.
         requested_aug_factor = self.tester_params.get('aug_factor', 8) if self.tester_params.get('augmentation_enable', False) else 1
         aug_factor = 1
-        if requested_aug_factor != 1 and not getattr(self, '_file_aug_warning_emitted', False):
+        if requested_aug_factor != 1 and not self._file_aug_warning_emitted:
             self.logger.warning(
                 'Disabling geometric augmentation for file-based CTSP-d instances because '
                 'the reconstructed 2D features do not preserve the original distance matrix.'
@@ -273,7 +276,10 @@ class CTSPdTester:
             problems = problems.to(self.device)
 
             self.env.load_problems(batch_size, aug_factor=aug_factor, problems=problems)
-            batch_size = int(self.env.batch_size)
+            loaded_batch_size = self.env.batch_size
+            if loaded_batch_size is None:
+                raise RuntimeError("Environment did not set batch_size after load_problems.")
+            batch_size = loaded_batch_size
             reset_state, _, _ = self.env.reset()
             self.model.pre_forward(reset_state)
 

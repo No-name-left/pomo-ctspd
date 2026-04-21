@@ -12,7 +12,15 @@ from CSTPd_bsl.POMO.CTSPd_Model import CTSPdModel as Model
 from torch.optim import Adam as Optimizer
 from torch.optim.lr_scheduler import MultiStepLR as Scheduler
 
-from utils.utils import *
+from utils.utils import (
+    AverageMeter,
+    LogData,
+    TimeEstimator,
+    get_result_folder,
+    util_can_save_log_images,
+    util_print_log_array,
+    util_save_log_image_with_label,
+)
 
 
 class TSPTrainer:
@@ -34,9 +42,9 @@ class TSPTrainer:
         self.result_log = LogData()
 
         # cuda
-        USE_CUDA = self.trainer_params['use_cuda']
+        USE_CUDA = bool(self.trainer_params['use_cuda'])
+        cuda_device_num = int(self.trainer_params.get('cuda_device_num', 0))
         if USE_CUDA:
-            cuda_device_num = self.trainer_params['cuda_device_num']
             if not torch.cuda.is_available():
                 self.logger.warning("CUDA requested but unavailable. Falling back to CPU.")
                 USE_CUDA = False
@@ -54,12 +62,13 @@ class TSPTrainer:
         else:
             device = torch.device('cpu')
         torch.set_default_dtype(torch.float32)
-        if hasattr(torch, 'set_default_device'):
-            torch.set_default_device(device)
+        set_default_device = getattr(torch, 'set_default_device', None)
+        if set_default_device is not None:
+            set_default_device(device)
         elif device.type == 'cuda':
-            torch.set_default_tensor_type(torch.cuda.FloatTensor)
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')
         else:
-            torch.set_default_tensor_type(torch.FloatTensor)
+            torch.set_default_tensor_type('torch.FloatTensor')
 
         # Main Components
         self.model = Model(**self.model_params).to(device)
@@ -74,6 +83,7 @@ class TSPTrainer:
             'should_stop': False,
         }
         self.training_elapsed_time_sec = float(self.trainer_params.get('training_elapsed_time_sec', 0.0))
+        self.training_start_time = time.time() - self.training_elapsed_time_sec
         self._metrics_header_written = False
 
         # Restore
@@ -86,7 +96,10 @@ class TSPTrainer:
             self.start_epoch = 1 + model_load['epoch']
             self.result_log.set_raw_data(checkpoint['result_log'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            self.scheduler.last_epoch = model_load['epoch']-1
+            if 'scheduler_state_dict' in checkpoint:
+                self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+            else:
+                self.scheduler.last_epoch = model_load['epoch']-1
             if 'early_stopping_state' in checkpoint:
                 self.early_stopping_state.update(checkpoint['early_stopping_state'])
             self.training_elapsed_time_sec = float(
@@ -352,11 +365,15 @@ class TSPTrainer:
 
         self.early_stopping_state['wait'] += 1
         wait = self.early_stopping_state['wait']
+        best_value = self.early_stopping_state['best_value']
+        if best_value is None:
+            raise RuntimeError("Early stopping best_value is unexpectedly unset.")
+
         self.logger.info(
             "Early stopping monitor[%s]: current=%.6f, best=%.6f at epoch %d, wait=%d/%d",
             monitor,
             current,
-            float(self.early_stopping_state['best_value']),
+            float(best_value),
             self.early_stopping_state['best_epoch'],
             wait,
             patience,

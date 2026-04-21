@@ -1,0 +1,72 @@
+{
+  "created_at": "2026-04-21T20:25:51",
+  "source_dir": "/root/autodl-tmp/NEW_py_ver/comparison_results/sota_cluster_large_n100_d1__bsl_vs_cluster__enhanced_inference_mds_aug_sample64__10_instances",
+  "local_search": {
+    "type": "same_priority_swap",
+    "passes": 20,
+    "note": "Only swaps nodes occupying positions with the same priority, so the priority sequence is unchanged."
+  },
+  "summary": {
+    "instance_count": 10,
+    "bsl_cost": {
+      "mean": 27075.4,
+      "median": 27193.5,
+      "min": 24789.0,
+      "max": 29183.0
+    },
+    "cluster_cost": {
+      "mean": 25319.6,
+      "median": 25231.5,
+      "min": 23758.0,
+      "max": 26706.0
+    },
+    "lkh_cost": {
+      "mean": 22724.9,
+      "median": 22708.0,
+      "min": 20910.0,
+      "max": 25102.0
+    },
+    "bsl_gap_to_lkh_percent": {
+      "mean": 19.281695005281435,
+      "median": 17.115657601935894,
+      "min": 12.964819540648925,
+      "max": 31.92441571357534
+    },
+    "cluster_gap_to_lkh_percent": {
+      "mean": 11.57774941662779,
+      "median": 12.633178087439621,
+      "min": 1.2827663134411602,
+      "max": 20.72691107996926
+    },
+    "cluster_minus_bsl": {
+      "mean": -1755.8,
+      "median": -2212.0,
+      "min": -3148.0,
+      "max": 574.0
+    },
+    "cluster_improvement_vs_bsl_percent": {
+      "mean": 6.340612755124578,
+      "median": 8.071178641247675,
+      "min": -2.203624078624079,
+      "max": 11.017779644407112
+    },
+    "bsl_local_search_improvement": {
+      "mean": 1770.8,
+      "median": 1557.5,
+      "min": 773.0,
+      "max": 3093.0
+    },
+    "cluster_local_search_improvement": {
+      "mean": 1026.8,
+      "median": 1121.5,
+      "min": 489.0,
+      "max": 1599.0
+    },
+    "cluster_win_count": 9,
+    "bsl_win_count": 1,
+    "tie_count": 0,
+    "cluster_win_rate": 0.9,
+    "all_bsl_feasible": true,
+    "all_cluster_feasible": true
+  }
+}

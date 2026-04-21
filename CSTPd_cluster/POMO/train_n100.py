@@ -54,6 +54,15 @@ model_params = {
     'same_group_bias_warmup_epochs': 20,
     'priority_distance_bias': 0.15,
     'priority_distance_tau': 1.0,
+    # Enhanced cluster-aware switches. To reproduce the previous cluster model,
+    # set relation_bias_mode='none' and use_decoder_priority_bias=False.
+    'relation_bias_mode': 'learnable',
+    'relation_bias_init': 0.2,
+    'relation_bias_tau': 1.0,
+    'use_decoder_priority_bias': True,
+    'decoder_priority_bias_mode': 'learnable',
+    'decoder_priority_bias_init': 0.2,
+    'decoder_priority_bias_tau': 1.0,
 }
 
 optimizer_params = {

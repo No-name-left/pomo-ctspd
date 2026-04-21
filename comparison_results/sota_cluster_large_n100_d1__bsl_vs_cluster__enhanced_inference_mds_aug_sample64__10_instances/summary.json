@@ -1,0 +1,138 @@
+{
+  "created_at": "2026-04-21T20:19:02",
+  "device": "cuda",
+  "augmentation_factor": 8,
+  "feature_modes": [
+    "anchor",
+    "mds"
+  ],
+  "sampling_runs": 64,
+  "seed": 20260421,
+  "instance_glob": "/root/autodl-tmp/NEW_py_ver/CTSPd(SOTA)/INSTANCES/Cluster_large/*100-C-*-1-*.ctspd",
+  "selected_instances": [
+    "/root/autodl-tmp/NEW_py_ver/CTSPd(SOTA)/INSTANCES/Cluster_large/kroA100-C-3-1-a.ctspd",
+    "/root/autodl-tmp/NEW_py_ver/CTSPd(SOTA)/INSTANCES/Cluster_large/kroA100-C-5-1-a.ctspd",
+    "/root/autodl-tmp/NEW_py_ver/CTSPd(SOTA)/INSTANCES/Cluster_large/kroB100-C-3-1-a.ctspd",
+    "/root/autodl-tmp/NEW_py_ver/CTSPd(SOTA)/INSTANCES/Cluster_large/kroB100-C-5-1-a.ctspd",
+    "/root/autodl-tmp/NEW_py_ver/CTSPd(SOTA)/INSTANCES/Cluster_large/kroC100-C-3-1-a.ctspd",
+    "/root/autodl-tmp/NEW_py_ver/CTSPd(SOTA)/INSTANCES/Cluster_large/kroC100-C-5-1-a.ctspd",
+    "/root/autodl-tmp/NEW_py_ver/CTSPd(SOTA)/INSTANCES/Cluster_large/kroD100-C-3-1-a.ctspd",
+    "/root/autodl-tmp/NEW_py_ver/CTSPd(SOTA)/INSTANCES/Cluster_large/kroD100-C-5-1-a.ctspd",
+    "/root/autodl-tmp/NEW_py_ver/CTSPd(SOTA)/INSTANCES/Cluster_large/kroE100-C-3-1-a.ctspd",
+    "/root/autodl-tmp/NEW_py_ver/CTSPd(SOTA)/INSTANCES/Cluster_large/kroE100-C-5-1-a.ctspd"
+  ],
+  "bsl_checkpoint": {
+    "path": "/root/autodl-tmp/NEW_py_ver/CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/checkpoint-best.pt",
+    "epoch": 155,
+    "model_params": {
+      "embedding_dim": 128,
+      "sqrt_embedding_dim": 11.313708498984761,
+      "encoder_layer_num": 6,
+      "qkv_dim": 16,
+      "head_num": 8,
+      "logit_clipping": 10,
+      "ff_hidden_dim": 512,
+      "eval_type": "argmax"
+    }
+  },
+  "cluster_checkpoint": {
+    "path": "/root/autodl-tmp/NEW_py_ver/CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/checkpoint-best.pt",
+    "epoch": 159,
+    "model_params": {
+      "embedding_dim": 128,
+      "sqrt_embedding_dim": 11.313708498984761,
+      "encoder_layer_num": 6,
+      "qkv_dim": 16,
+      "head_num": 8,
+      "logit_clipping": 10,
+      "ff_hidden_dim": 512,
+      "eval_type": "argmax",
+      "num_groups": 8,
+      "use_group_embedding": true,
+      "use_group_fusion_gate": true,
+      "cluster_bias_mode": "scheduled",
+      "same_group_bias_init": 0.1,
+      "same_group_bias_final": 1.25,
+      "same_group_bias_warmup_epochs": 20,
+      "priority_distance_bias": 0.15,
+      "priority_distance_tau": 1.0,
+      "relation_bias_mode": "none",
+      "use_decoder_priority_bias": false
+    }
+  },
+  "summary": {
+    "instance_count": 10,
+    "bsl_cost": {
+      "mean": 28846.2,
+      "median": 28872.5,
+      "min": 26821.0,
+      "max": 32276.0
+    },
+    "cluster_cost": {
+      "mean": 26346.4,
+      "median": 26458.0,
+      "min": 24253.0,
+      "max": 28109.0
+    },
+    "lkh_cost": {
+      "mean": 22724.9,
+      "median": 22708.0,
+      "min": 20910.0,
+      "max": 25102.0
+    },
+    "bsl_gap_to_lkh_percent": {
+      "mean": 27.203721378868703,
+      "median": 25.203050132737218,
+      "min": 17.496823936566347,
+      "max": 45.90660458387957
+    },
+    "cluster_gap_to_lkh_percent": {
+      "mean": 16.09073412385797,
+      "median": 15.406759079480615,
+      "min": 6.103099354633097,
+      "max": 26.499706161565932
+    },
+    "cluster_minus_bsl": {
+      "mean": -2499.8,
+      "median": -2679.5,
+      "min": -4331.0,
+      "max": 1288.0
+    },
+    "cluster_improvement_vs_bsl_percent": {
+      "mean": 8.46731549921497,
+      "median": 9.105944244899653,
+      "min": -4.802207225681369,
+      "max": 15.151833193394907
+    },
+    "bsl_time_sec": {
+      "mean": 0.07328371200710534,
+      "median": 0.07920792885124683,
+      "min": 0.05903419107198715,
+      "max": 0.0797656886279583
+    },
+    "cluster_time_sec": {
+      "mean": 0.0734316598623991,
+      "median": 0.08086052723228931,
+      "min": 0.060617685317993164,
+      "max": 0.08184127882122993
+    },
+    "bsl_total_search_time_sec": {
+      "mean": 10.42153351046145,
+      "median": 10.375954600051045,
+      "min": 10.305092334747314,
+      "max": 10.898355195298791
+    },
+    "cluster_total_search_time_sec": {
+      "mean": 10.71379110403359,
+      "median": 10.697565541602671,
+      "min": 10.570613510906696,
+      "max": 10.840384939685464
+    },
+    "cluster_win_count": 9,
+    "bsl_win_count": 1,
+    "tie_count": 0,
+    "cluster_win_rate": 0.9,
+    "all_bsl_feasible": true,
+    "all_cluster_feasible": true
+  }
+}
