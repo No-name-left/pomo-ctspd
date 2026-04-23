@@ -35,6 +35,8 @@ CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/*
 !CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/checkpoint-latest.pt
 !CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/training_metrics.csv
 !CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/training_progress.json
+!CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/src/
+!CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/src/*.py
 
 !CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/
 CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/*
@@ -42,3 +44,5 @@ CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/*
 !CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/checkpoint-latest.pt
 !CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/training_metrics.csv
 !CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/training_progress.json
+!CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/src/
+!CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/src/*.py
