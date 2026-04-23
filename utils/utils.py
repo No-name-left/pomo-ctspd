@@ -463,25 +463,18 @@ def _build_log_image_plt(img_params,
 
 
 def copy_all_src(dst_root):
-    # execution dir
-    if os.path.basename(sys.argv[0]).startswith('ipykernel_launcher'):
-        execution_path = os.getcwd()
-    else:
-        execution_path = os.path.dirname(sys.argv[0])
-
-    # home dir setting
-    candidate_dirs = []
-    for path_entry in sys.path[:3]:
-        if not path_entry:
-            continue
-        candidate_dir = os.path.abspath(os.path.join(execution_path, path_entry))
-        if os.path.isdir(candidate_dir):
-            candidate_dirs.append(candidate_dir)
-
-    if candidate_dirs:
-        home_dir = min(candidate_dirs, key=len)
-    else:
-        home_dir = os.path.abspath(os.getcwd())
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    allowed_top_dirs = {'CSTPd_bsl', 'CSTPd_cluster', 'TSP', 'scripts', 'utils'}
+    ignored_parts = {
+        '.autodl',
+        '.git',
+        '__pycache__',
+        'comparison_results',
+        'data',
+        'result',
+        'test_results',
+        'training_runs',
+    }
 
     # make target directory
     dst_path = os.path.join(dst_root, 'src')
@@ -489,18 +482,27 @@ def copy_all_src(dst_root):
     if not os.path.exists(dst_path):
         os.makedirs(dst_path)
 
+    def is_project_source_file(src_abspath):
+        if not src_abspath.endswith('.py'):
+            return False
+        try:
+            relpath = os.path.relpath(src_abspath, project_root)
+        except ValueError:
+            return False
+        if relpath.startswith('..' + os.sep) or relpath == '..':
+            return False
+        rel_parts = relpath.split(os.sep)
+        if not rel_parts or rel_parts[0] not in allowed_top_dirs:
+            return False
+        return not any(part in ignored_parts for part in rel_parts)
+
     for item in sys.modules.items():
         key, value = item
 
         if hasattr(value, '__file__') and value.__file__:
             src_abspath = os.path.abspath(value.__file__)
 
-            try:
-                is_project_file = os.path.commonpath([home_dir, src_abspath]) == home_dir
-            except ValueError:
-                is_project_file = False
-
-            if is_project_file:
+            if is_project_source_file(src_abspath):
                 dst_filepath = os.path.join(dst_path, os.path.basename(src_abspath))
 
                 if os.path.exists(dst_filepath):

@@ -54,12 +54,13 @@ model_params = {
     'same_group_bias_warmup_epochs': 20,
     'priority_distance_bias': 0.15,
     'priority_distance_tau': 1.0,
-    # Enhanced cluster-aware switches. To reproduce the previous cluster model,
-    # set relation_bias_mode='none' and use_decoder_priority_bias=False.
-    'relation_bias_mode': 'learnable',
+    # Keep the thesis main model aligned with the existing full-cluster checkpoint.
+    # The learnable relation bias and decoder priority bias are optional enhanced
+    # variants, not part of the main ablation baseline.
+    'relation_bias_mode': 'none',
     'relation_bias_init': 0.2,
     'relation_bias_tau': 1.0,
-    'use_decoder_priority_bias': True,
+    'use_decoder_priority_bias': False,
     'decoder_priority_bias_mode': 'learnable',
     'decoder_priority_bias_init': 0.2,
     'decoder_priority_bias_tau': 1.0,

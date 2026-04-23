@@ -176,6 +176,26 @@ testing.
   `checkpoint-best.pt` files; both were incomplete/corrupt and not committed.
   Updated `.gitignore` to whitelist the intended checkpoint/metric files after
   complete replacements are uploaded.
+- 2026-04-23: Stopped the first ablation queue because it inherited enhanced
+  modules (`relation_bias_mode='learnable'`, `use_decoder_priority_bias=True`)
+  and was not directly comparable with the existing full-cluster checkpoint.
+  Deleted its partial output:
+  `CSTPd_cluster/POMO/result/23日_15点22分_cluster_n100_d1_wo_group_embedding`
+  and its queue logs.
+- 2026-04-23: Reverted `CSTPd_cluster/POMO/train_n100.py` main defaults to the
+  existing full-cluster architecture:
+  `relation_bias_mode='none'`, `use_decoder_priority_bias=False`.
+- 2026-04-23: Restarted ablation queue with PID `16906`.
+  Queue state:
+  `training_runs/20260423_163443_custom_queue/queue_state.json`.
+  First epoch of `w/o_group_embedding` took 112.75 sec, matching the previous
+  full-cluster training speed.
+- 2026-04-23: Fixed `utils.copy_all_src()` to copy only whitelisted project
+  `.py` files and exclude `result/`, `.git/`, `.autodl/`, caches, data, and
+  training/test output directories. This prevents result `src/` snapshots from
+  being polluted with Python environment or third-party module files. Removed
+  the already-polluted `src/` snapshot from the incomplete manually uploaded
+  full-cluster result folder; checkpoint files are unaffected.
 
 Update this section whenever long-running training or evaluation jobs are
 started, stopped, or completed.
