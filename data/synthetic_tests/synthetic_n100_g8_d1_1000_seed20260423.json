@@ -1,0 +1,10 @@
+{
+  "dataset_type": "synthetic_fixed",
+  "created_at": "2026-04-23T15:09:27",
+  "problem_size": 100,
+  "num_groups": 8,
+  "relaxation_d": 1,
+  "instance_num": 1000,
+  "seed": 20260423,
+  "notes": "Fixed same-distribution synthetic test set: random coordinates and random priority-group assignment. This is the main n100/g8/d1 test set."
+}

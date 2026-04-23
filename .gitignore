@@ -12,12 +12,33 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# AutoDL local state
+.autodl/
+
 # Runtime logs
 debug.log
 *.log
 *.out
+training_runs/
+test_results/
+summary.csv
 
 # Training/runtime result folders
-CSTPd_bsl/POMO/result/
-CSTPd_cluster/POMO/result/
+CSTPd_bsl/POMO/result/*
+CSTPd_cluster/POMO/result/*
 TSP/POMO/result/
+
+# Thesis main checkpoints that should be publishable once complete.
+!CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/
+CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/*
+!CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/checkpoint-best.pt
+!CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/checkpoint-latest.pt
+!CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/training_metrics.csv
+!CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/training_progress.json
+
+!CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/
+CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/*
+!CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/checkpoint-best.pt
+!CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/checkpoint-latest.pt
+!CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/training_metrics.csv
+!CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/training_progress.json

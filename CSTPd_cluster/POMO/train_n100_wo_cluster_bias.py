@@ -5,7 +5,7 @@ base.model_params.update({
     'use_group_embedding': True,
     'use_group_fusion_gate': True,
     'cluster_bias_mode': 'none',
-    'priority_distance_bias': 0.0,
+    'priority_distance_bias': 0.15,
 })
 
 base.trainer_params['logging']['log_image_params_1']['title_prefix'] = 'CTSPd Cluster w/o Cluster Bias'
