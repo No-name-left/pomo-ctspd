@@ -134,23 +134,41 @@ testing.
 ## Current Known State
 
 - CUDA is available on this machine: NVIDIA GeForce RTX 5090.
-- A tracked baseline n100 checkpoint currently exists under:
-  `CSTPd_bsl/POMO/result/19日17点_bsl_n100_160ep_best15.703/checkpoint-best.pt`
-- The intended thesis baseline checkpoint location is:
+- The older baseline n100 checkpoint still exists under:
+  `CSTPd_bsl/POMO/result/19日17点_bsl_n100_160ep_best15.703/checkpoint-best.pt`.
+  It loaded successfully during manual checks, but it is not the preferred
+  thesis-main checkpoint now that the 2026-04-21 baseline result is available.
+- The thesis-main baseline result is valid and committed under:
   `CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/checkpoint-best.pt`
-- The intended full cluster n100 checkpoint location is:
+  and `checkpoint-latest.pt`.
+  - epoch 160 / 160
+  - best_epoch = 155
+  - best_value = 15.784607734985352
+  - total_training_time_sec = 17400.975403547287
+- The thesis-main full cluster result is valid and committed under:
   `CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/checkpoint-best.pt`
-- On 2026-04-23, the manually uploaded intended baseline and full-cluster
-  `checkpoint-best.pt` files failed `torch.load` with:
-  `PytorchStreamReader failed reading zip archive: failed finding central directory`.
-  Treat those two uploaded checkpoint files as incomplete until they are
-  replaced by complete uploads.
-- `.gitignore` now keeps generic `result/` outputs ignored but whitelists the
-  intended thesis baseline and full-cluster `checkpoint-best.pt`,
-  `checkpoint-latest.pt`, `training_metrics.csv`, and `training_progress.json`
-  files so complete replacements can be added normally.
-- The current long-running training queue is for ablations only:
-  - `train_n100_wo_group_embedding.py`
+  and `checkpoint-latest.pt`.
+  - epoch 160 / 160
+  - best_epoch = 159
+  - best_value = 15.73443634338379
+  - total_training_time_sec = 17658.182819128036
+- The first main ablation, `cluster_n100_d1_wo_group_embedding`, completed
+  successfully under:
+  `CSTPd_cluster/POMO/result/23日_16点34分_cluster_n100_d1_wo_group_embedding/checkpoint-best.pt`
+  and `checkpoint-latest.pt`.
+  - epoch 160 / 160
+  - best_epoch = 154
+  - best_value = 15.895662044067382
+  - total_training_time_sec = 17853.272482395172
+  - avg_epoch_time_sec = 111.58295301496983
+- `.gitignore` keeps generic `result/` outputs ignored but whitelists the
+  publishable thesis result artifacts for the completed baseline, full-cluster,
+  and `w/o_group_embedding` runs: `checkpoint-best.pt`, `checkpoint-latest.pt`,
+  `training_metrics.csv`, `training_progress.json`, latest curve images,
+  `img/*.jpg`, and `src/*.py`.
+- There is no active training queue after the `w/o_group_embedding` run. The
+  queue was intentionally stopped after that model because of limited time.
+  The following ablations are still pending:
   - `train_n100_wo_fusion_gate.py`
   - `train_n100_wo_cluster_bias.py`
   - `train_n100_wo_priority_distance_bias.py`
@@ -196,6 +214,28 @@ testing.
   being polluted with Python environment or third-party module files. Removed
   the already-polluted `src/` snapshot from the incomplete manually uploaded
   full-cluster result folder; checkpoint files are unaffected.
+- 2026-04-23: The thesis-main baseline and full-cluster result folders were
+  re-uploaded completely, verified with `torch.load`, strict state-dict loading,
+  and `training_progress.json`/`training_metrics.csv` checks. Their
+  `checkpoint-best.pt`, `checkpoint-latest.pt`, metrics, progress JSON, source
+  snapshots, and training curve images were committed.
+- 2026-04-23: Reconstructed the clean `src/` snapshot for
+  `CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160`
+  after its polluted uploaded `src/` folder was intentionally omitted.
+- 2026-04-23: Paused the ablation queue scheduler while allowing the active
+  `train_n100_wo_group_embedding.py` child process to finish. A watcher cleaned
+  up the stopped queue parent after the current model completed, preventing
+  `w/o_fusion_gate` from starting automatically.
+- 2026-04-23: `cluster_n100_d1_wo_group_embedding` completed 160 epochs.
+  Final recorded result:
+  - result folder:
+    `CSTPd_cluster/POMO/result/23日_16点34分_cluster_n100_d1_wo_group_embedding`
+  - best_epoch = 154
+  - best_value = 15.895662044067382
+  - latest epoch = 160
+  - latest train_score = 15.896407746276855
+  - total_training_time_sec = 17853.272482395172
+  - avg_epoch_time_sec = 111.58295301496983
 
 Update this section whenever long-running training or evaluation jobs are
 started, stopped, or completed.
