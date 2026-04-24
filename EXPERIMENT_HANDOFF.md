@@ -134,10 +134,11 @@ testing.
 ## Current Known State
 
 - CUDA is available on this machine: NVIDIA GeForce RTX 5090.
-- The older baseline n100 checkpoint still exists under:
-  `CSTPd_bsl/POMO/result/19日17点_bsl_n100_160ep_best15.703/checkpoint-best.pt`.
-  It loaded successfully during manual checks, but it is not the preferred
-  thesis-main checkpoint now that the 2026-04-21 baseline result is available.
+- The older baseline n100 tracked result under:
+  `CSTPd_bsl/POMO/result/19日17点_bsl_n100_160ep_best15.703/`
+  was removed from tracked artifacts on 2026-04-24. It was an older,
+  non-preferred baseline result and should not be used as the thesis-main
+  baseline now that the 2026-04-21 baseline result is available.
 - The thesis-main baseline result is valid and committed under:
   `CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/checkpoint-best.pt`
   and `checkpoint-latest.pt`.
@@ -179,6 +180,13 @@ testing.
   - best_value = 15.72086676513672
   - total_training_time_sec = 16985.185193777084
   - avg_epoch_time_sec = 106.15740746110677
+- Important training-metric anomaly: `w/o_cluster_bias` has a better training
+  best value than the current full-cluster run:
+  `15.72086676513672` vs `15.73443634338379`. Treat this as an important
+  follow-up signal rather than a final conclusion. It suggests the scheduled
+  same-group attention bias may be neutral or harmful under this seed/setting,
+  but the claim needs fixed-test evaluation and preferably repeated seeds before
+  changing the main model definition.
 - `.gitignore` keeps generic `result/` outputs ignored but whitelists the
   publishable thesis result artifacts for the completed baseline, full-cluster,
   `w/o_group_embedding`, `w/o_fusion_gate`, and `w/o_cluster_bias` runs:
@@ -303,6 +311,24 @@ testing.
   - total_training_time_sec = 16985.185193777084
   - avg_epoch_time_sec = 106.15740746110677
   The required-ablation queue then finished successfully.
+- 2026-04-24: Committed the two required n100 ablation result folders in
+  `f363a94`:
+  - `cluster_n100_d1_wo_fusion_gate`
+  - `cluster_n100_d1_wo_cluster_bias`
+  The commit includes best/latest checkpoints, metrics, progress JSON, curve
+  images, and source snapshots, while leaving numbered intermediate
+  checkpoints, logs, queue state, and cache files untracked/ignored.
+- 2026-04-24: Marked the old tracked baseline result
+  `CSTPd_bsl/POMO/result/19日17点_bsl_n100_160ep_best15.703/` for deletion
+  from the repository to reduce stale non-main artifacts. The thesis-main
+  baseline remains
+  `CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/`.
+- 2026-04-24: Noted the unexpected `w/o_cluster_bias` training-score result:
+  it is better than the current full-cluster training best on this run. This
+  may mean the scheduled same-group attention bias is over-constraining or
+  simply that this seed favored the ablation. Do not rewrite the main model
+  claim until fixed-test evaluation and, ideally, repeated-seed checks confirm
+  the pattern.
 
 Update this section whenever long-running training or evaluation jobs are
 started, stopped, or completed.
