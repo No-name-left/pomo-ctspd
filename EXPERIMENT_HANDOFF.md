@@ -1,6 +1,6 @@
 # POMO-CTSP-d Experiment Handoff
 
-Last updated: 2026-04-23
+Last updated: 2026-04-24
 
 This file records the experiment decisions and operational changes needed for
 another AI or researcher to continue the undergraduate-thesis experiment without
@@ -161,17 +161,37 @@ testing.
   - best_value = 15.895662044067382
   - total_training_time_sec = 17853.272482395172
   - avg_epoch_time_sec = 111.58295301496983
+- The second required ablation, `cluster_n100_d1_wo_fusion_gate`, completed
+  successfully under:
+  `CSTPd_cluster/POMO/result/24日_12点15分_cluster_n100_d1_wo_fusion_gate/checkpoint-best.pt`
+  and `checkpoint-latest.pt`.
+  - epoch 160 / 160
+  - best_epoch = 156
+  - best_value = 15.786031008911133
+  - total_training_time_sec = 17210.27424120903
+  - avg_epoch_time_sec = 107.56421400755644
+- The third required ablation, `cluster_n100_d1_wo_cluster_bias`, completed
+  successfully under:
+  `CSTPd_cluster/POMO/result/24日_17点01分_cluster_n100_d1_wo_cluster_bias/checkpoint-best.pt`
+  and `checkpoint-latest.pt`.
+  - epoch 160 / 160
+  - best_epoch = 160
+  - best_value = 15.72086676513672
+  - total_training_time_sec = 16985.185193777084
+  - avg_epoch_time_sec = 106.15740746110677
 - `.gitignore` keeps generic `result/` outputs ignored but whitelists the
   publishable thesis result artifacts for the completed baseline, full-cluster,
-  and `w/o_group_embedding` runs: `checkpoint-best.pt`, `checkpoint-latest.pt`,
-  `training_metrics.csv`, `training_progress.json`, latest curve images,
-  `img/*.jpg`, and `src/*.py`.
-- There is no active training queue after the `w/o_group_embedding` run. The
-  queue was intentionally stopped after that model because of limited time.
-  The following ablations are still pending:
+  `w/o_group_embedding`, `w/o_fusion_gate`, and `w/o_cluster_bias` runs:
+  `checkpoint-best.pt`, `checkpoint-latest.pt`, `training_metrics.csv`,
+  `training_progress.json`, latest curve images, `img/*.jpg`, and `src/*.py`.
+- The required-ablation training queue completed on 2026-04-24:
+  `training_runs/20260424_121503_custom_queue/queue_state.json`.
+  Queue PID was `4702`.
+  The queue ran:
   - `train_n100_wo_fusion_gate.py`
   - `train_n100_wo_cluster_bias.py`
-  - `train_n100_wo_priority_distance_bias.py`
+  The optional `train_n100_wo_priority_distance_bias.py` ablation remains
+  pending.
 
 ## Operation Log
 
@@ -236,6 +256,53 @@ testing.
   - latest train_score = 15.896407746276855
   - total_training_time_sec = 17853.272482395172
   - avg_epoch_time_sec = 111.58295301496983
+- 2026-04-24: Verified the two required remaining ablation configs before
+  restarting training:
+  - `w/o_fusion_gate`: keeps `use_group_embedding=True`,
+    `cluster_bias_mode='scheduled'`, `priority_distance_bias=0.15`,
+    `relation_bias_mode='none'`, and `use_decoder_priority_bias=False`; only
+    sets `use_group_fusion_gate=False`.
+  - `w/o_cluster_bias`: keeps `use_group_embedding=True`,
+    `use_group_fusion_gate=True`, `priority_distance_bias=0.15`,
+    `relation_bias_mode='none'`, and `use_decoder_priority_bias=False`; only
+    sets `cluster_bias_mode='none'`.
+- 2026-04-24: A first non-detached queue launch at
+  `training_runs/20260424_121408_custom_queue/queue_state.json` did not leave
+  a live training process. It can be ignored if present.
+- 2026-04-24: Started the required-ablation queue in a detached session with
+  PID `4702`.
+  Queue state:
+  `training_runs/20260424_121503_custom_queue/queue_state.json`.
+  First active job:
+  `CSTPd_cluster/POMO/train_n100_wo_fusion_gate.py`.
+  Expected second job after the first completes:
+  `CSTPd_cluster/POMO/train_n100_wo_cluster_bias.py`.
+  First result folder created:
+  `CSTPd_cluster/POMO/result/24日_12点15分_cluster_n100_d1_wo_fusion_gate`.
+- 2026-04-24: `cluster_n100_d1_wo_fusion_gate` completed 160 epochs.
+  Final recorded result:
+  - result folder:
+    `CSTPd_cluster/POMO/result/24日_12点15分_cluster_n100_d1_wo_fusion_gate`
+  - best_epoch = 156
+  - best_value = 15.786031008911133
+  - latest epoch = 160
+  - latest train_score = 15.787005732116699
+  - total_training_time_sec = 17210.27424120903
+  - avg_epoch_time_sec = 107.56421400755644
+  The queue then automatically started
+  `CSTPd_cluster/POMO/train_n100_wo_cluster_bias.py`; its result folder is
+  `CSTPd_cluster/POMO/result/24日_17点01分_cluster_n100_d1_wo_cluster_bias`.
+- 2026-04-24: `cluster_n100_d1_wo_cluster_bias` completed 160 epochs.
+  Final recorded result:
+  - result folder:
+    `CSTPd_cluster/POMO/result/24日_17点01分_cluster_n100_d1_wo_cluster_bias`
+  - best_epoch = 160
+  - best_value = 15.72086676513672
+  - latest epoch = 160
+  - latest train_score = 15.72086676513672
+  - total_training_time_sec = 16985.185193777084
+  - avg_epoch_time_sec = 106.15740746110677
+  The required-ablation queue then finished successfully.
 
 Update this section whenever long-running training or evaluation jobs are
 started, stopped, or completed.
