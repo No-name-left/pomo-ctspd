@@ -1,0 +1,13 @@
+{
+  "epoch": 160,
+  "total_epochs": 160,
+  "train_score": 15.896407746276855,
+  "train_loss": -0.40804868247985837,
+  "best_epoch": 154,
+  "best_value": 15.895662044067382,
+  "early_stop_wait": 6,
+  "early_stop": false,
+  "epoch_time_sec": 111.10655283927917,
+  "total_training_time_sec": 17853.272482395172,
+  "avg_epoch_time_sec": 111.58295301496983
+}

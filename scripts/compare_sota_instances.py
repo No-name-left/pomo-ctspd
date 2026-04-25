@@ -236,6 +236,8 @@ def build_cluster_params(state_dict: dict[str, torch.Tensor]) -> dict[str, Any]:
     num_groups = infer_cluster_num_groups(state_dict)
     if num_groups is not None:
         params["num_groups"] = num_groups
+    if any("same_group_bias_param" in key for key in state_dict):
+        params["cluster_bias_mode"] = "learnable"
     if any("relation_attention_bias" in key for key in state_dict):
         params["relation_bias_mode"] = "learnable"
     if "decoder.decoder_priority_bias_table" in state_dict:

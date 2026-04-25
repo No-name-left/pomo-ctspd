@@ -115,6 +115,12 @@ def _get_encoding(encoded_nodes, node_index_to_pick):
     return picked_nodes
 
 
+def _inverse_softplus(value):
+    clamped_value = max(float(value), 1e-6)
+    value_tensor = torch.tensor(clamped_value, dtype=torch.float32)
+    return torch.log(torch.expm1(value_tensor))
+
+
 ########################################
 # ENCODER
 ########################################
@@ -213,7 +219,7 @@ class EncoderLayer(nn.Module):
             torch.tensor(self.same_group_bias_init, dtype=torch.float32),
         )
         if self.cluster_bias_mode == 'learnable':
-            self.same_group_bias_param = nn.Parameter(torch.tensor(self.same_group_bias_init, dtype=torch.float32))
+            self.same_group_bias_param = nn.Parameter(_inverse_softplus(self.same_group_bias_init))
         else:
             self.same_group_bias_param = None
         self.relation_attention_bias: Optional[nn.Parameter]

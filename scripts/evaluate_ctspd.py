@@ -105,10 +105,13 @@ def parse_args() -> argparse.Namespace:
         default="full",
         choices=[
             "full",
+            "scheduled_bias",
             "wo_group_embedding",
             "wo_fusion_gate",
             "wo_cluster_bias",
             "wo_priority_distance_bias",
+            "wo_all_bias",
+            "learnable_bias",
         ],
         help="Cluster ablation variant. Ignored for baseline.",
     )
@@ -154,6 +157,8 @@ def cluster_params_from_state_dict(state_dict: dict[str, torch.Tensor], variant:
     if group_key in state_dict:
         params["num_groups"] = int(state_dict[group_key].size(0)) - 1
 
+    if any("same_group_bias_param" in key for key in state_dict):
+        params["cluster_bias_mode"] = "learnable"
     if not any("relation_attention_bias" in key for key in state_dict):
         params["relation_bias_mode"] = "none"
     if "decoder.decoder_priority_bias_table" not in state_dict:
@@ -167,7 +172,12 @@ def cluster_params_from_state_dict(state_dict: dict[str, torch.Tensor], variant:
         params["cluster_bias_mode"] = "none"
     elif variant == "wo_priority_distance_bias":
         params["priority_distance_bias"] = 0.0
-    elif variant != "full":
+    elif variant == "wo_all_bias":
+        params["cluster_bias_mode"] = "none"
+        params["priority_distance_bias"] = 0.0
+        params["relation_bias_mode"] = "none"
+        params["use_decoder_priority_bias"] = False
+    elif variant not in ("full", "scheduled_bias", "learnable_bias"):
         raise ValueError(f"Unsupported cluster variant: {variant}")
 
     return params

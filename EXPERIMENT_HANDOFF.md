@@ -1,6 +1,6 @@
 # POMO-CTSP-d Experiment Handoff
 
-Last updated: 2026-04-24
+Last updated: 2026-04-25
 
 This file records the experiment decisions and operational changes needed for
 another AI or researcher to continue the undergraduate-thesis experiment without
@@ -32,20 +32,32 @@ Use this setting for the thesis main line:
 Do not make variable-d or random num_groups the default main training setup.
 The code may keep those capabilities as optional extensions.
 
-## Main Models
+## Final Model Set
 
-Required:
+Final thesis model set after the 2026-04-25 discussion:
 
-- baseline_n100_d1: `CSTPd_bsl/POMO/train_n100.py`
-- cluster_n100_d1: `CSTPd_cluster/POMO/train_n100.py`
-- cluster_n100_d1_wo_group_embedding: `CSTPd_cluster/POMO/train_n100_wo_group_embedding.py`
-- cluster_n100_d1_wo_fusion_gate: `CSTPd_cluster/POMO/train_n100_wo_fusion_gate.py`
-- cluster_n100_d1_wo_cluster_bias: `CSTPd_cluster/POMO/train_n100_wo_cluster_bias.py`
+- baseline_n100_g8_d1:
+  `CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/checkpoint-best.pt`
+- legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1:
+  existing structural ablation result, reused as auxiliary evidence.
+- legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1:
+  existing structural ablation result, reused as auxiliary evidence.
+- new_full_learnable_bias_n100_g8_d1:
+  `CSTPd_cluster/POMO/train_n100_learnable_bias.py`
+- scheduled_bias_ablation_n100_g8_d1:
+  old full-cluster result, now interpreted as the hand-crafted
+  scheduled/fixed-bias ablation.
+- wo_all_bias_n100_g8_d1:
+  `CSTPd_cluster/POMO/train_n100_wo_all_bias.py`
 
-Optional but useful:
+The two structural ablation scripts have been updated to the new learnable-bias
+configuration for possible retraining:
 
-- cluster_n100_d1_wo_priority_distance_bias:
-  `CSTPd_cluster/POMO/train_n100_wo_priority_distance_bias.py`
+- `CSTPd_cluster/POMO/train_n100_wo_group_embedding.py`
+- `CSTPd_cluster/POMO/train_n100_wo_fusion_gate.py`
+
+Their existing result folders remain legacy scheduled-bias runs; only new runs
+from these scripts will be learnable-bias structural ablations.
 
 ## Added / Adjusted Utilities
 
@@ -68,19 +80,40 @@ Optional but useful:
   Runs training scripts sequentially in the background-friendly queue style.
   It does not change checkpoint or result-folder logic in the original trainers.
 
-## Important Correction
+## Final Bias Design
 
-`CSTPd_cluster/POMO/train_n100_wo_cluster_bias.py` previously disabled both
-`cluster_bias_mode` and `priority_distance_bias`. That mixed two ablations.
-It now only sets:
+The new full model treats the same-group and priority-distance attention biases
+as one learnable bias module:
+
+```python
+cluster_bias_mode = 'learnable'
+priority_distance_bias = 0.0
+relation_bias_mode = 'learnable'
+use_decoder_priority_bias = False
+```
+
+This replaces the old hand-crafted setup:
+
+```python
+cluster_bias_mode = 'scheduled'
+priority_distance_bias = 0.15
+relation_bias_mode = 'none'
+use_decoder_priority_bias = False
+```
+
+The true `w/o all bias` ablation keeps group embedding and the fusion gate but
+turns off all attention/logit bias terms:
 
 ```python
 cluster_bias_mode = 'none'
-priority_distance_bias = 0.15
+priority_distance_bias = 0.0
+relation_bias_mode = 'none'
+use_decoder_priority_bias = False
 ```
 
-The separate optional ablation
-`train_n100_wo_priority_distance_bias.py` sets `priority_distance_bias = 0.0`.
+The old `w/o_cluster_bias` run is no longer part of the final model set because
+it removed only the scheduled same-group bias while keeping the fixed
+`priority_distance_bias = 0.15`.
 
 ## Recommended Fixed Test Set
 
@@ -110,18 +143,21 @@ Synthetic main test:
 ```bash
 python scripts/evaluate_ctspd.py \
   --model-type cluster \
-  --model-variant full \
+  --model-variant learnable_bias \
   --checkpoint CSTPd_cluster/POMO/result/<run>/checkpoint-best.pt \
   --mode synthetic \
   --dataset-file data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt
 ```
+
+Use `--model-variant scheduled_bias` for the old scheduled/fixed-bias ablation
+and `--model-variant wo_all_bias` for the true no-bias ablation.
 
 External benchmark test, kept separate from synthetic main testing:
 
 ```bash
 python scripts/evaluate_ctspd.py \
   --model-type cluster \
-  --model-variant full \
+  --model-variant learnable_bias \
   --checkpoint CSTPd_cluster/POMO/result/<run>/checkpoint-best.pt \
   --mode benchmark \
   --instance-glob "CTSPd(SOTA)/INSTANCES/Cluster_large/*100-C-*-1-*.ctspd" \
@@ -140,56 +176,48 @@ testing.
   non-preferred baseline result and should not be used as the thesis-main
   baseline now that the 2026-04-21 baseline result is available.
 - The thesis-main baseline result is valid and committed under:
-  `CSTPd_bsl/POMO/result/21日_13点43分_baseline_n100_d1/checkpoint-best.pt`
+  `CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/checkpoint-best.pt`
   and `checkpoint-latest.pt`.
   - epoch 160 / 160
   - best_epoch = 155
   - best_value = 15.784607734985352
   - total_training_time_sec = 17400.975403547287
-- The thesis-main full cluster result is valid and committed under:
-  `CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160/checkpoint-best.pt`
+- The old full-cluster result is retained as the scheduled/fixed-bias ablation
+  under:
+  `CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/checkpoint-best.pt`
   and `checkpoint-latest.pt`.
   - epoch 160 / 160
   - best_epoch = 159
   - best_value = 15.73443634338379
   - total_training_time_sec = 17658.182819128036
-- The first main ablation, `cluster_n100_d1_wo_group_embedding`, completed
+- The legacy structural ablation, `w/o_group_embedding`, completed
   successfully under:
-  `CSTPd_cluster/POMO/result/23日_16点34分_cluster_n100_d1_wo_group_embedding/checkpoint-best.pt`
+  `CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/checkpoint-best.pt`
   and `checkpoint-latest.pt`.
   - epoch 160 / 160
   - best_epoch = 154
   - best_value = 15.895662044067382
   - total_training_time_sec = 17853.272482395172
   - avg_epoch_time_sec = 111.58295301496983
-- The second required ablation, `cluster_n100_d1_wo_fusion_gate`, completed
+- The legacy structural ablation, `w/o_fusion_gate`, completed
   successfully under:
-  `CSTPd_cluster/POMO/result/24日_12点15分_cluster_n100_d1_wo_fusion_gate/checkpoint-best.pt`
+  `CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/checkpoint-best.pt`
   and `checkpoint-latest.pt`.
   - epoch 160 / 160
   - best_epoch = 156
   - best_value = 15.786031008911133
   - total_training_time_sec = 17210.27424120903
   - avg_epoch_time_sec = 107.56421400755644
-- The third required ablation, `cluster_n100_d1_wo_cluster_bias`, completed
-  successfully under:
-  `CSTPd_cluster/POMO/result/24日_17点01分_cluster_n100_d1_wo_cluster_bias/checkpoint-best.pt`
-  and `checkpoint-latest.pt`.
-  - epoch 160 / 160
-  - best_epoch = 160
-  - best_value = 15.72086676513672
-  - total_training_time_sec = 16985.185193777084
-  - avg_epoch_time_sec = 106.15740746110677
-- Important training-metric anomaly: `w/o_cluster_bias` has a better training
-  best value than the current full-cluster run:
-  `15.72086676513672` vs `15.73443634338379`. Treat this as an important
-  follow-up signal rather than a final conclusion. It suggests the scheduled
-  same-group attention bias may be neutral or harmful under this seed/setting,
-  but the claim needs fixed-test evaluation and preferably repeated seeds before
-  changing the main model definition.
+- The previous `w/o_cluster_bias` result
+  `CSTPd_cluster/POMO/result/24日_17点01分_cluster_n100_d1_wo_cluster_bias/`
+  was removed from the final tracked model set on 2026-04-25. It is not a true
+  `w/o all bias` run because it kept `priority_distance_bias = 0.15`.
+- The best training score from the removed `w/o_cluster_bias` run
+  (`15.72086676513672`) motivated replacing hand-crafted scheduled/fixed bias
+  with the new learnable priority-relation bias design.
 - `.gitignore` keeps generic `result/` outputs ignored but whitelists the
-  publishable thesis result artifacts for the completed baseline, full-cluster,
-  `w/o_group_embedding`, `w/o_fusion_gate`, and `w/o_cluster_bias` runs:
+  publishable thesis result artifacts for the final baseline, scheduled-bias
+  ablation, legacy structural ablations, and future learnable-bias runs:
   `checkpoint-best.pt`, `checkpoint-latest.pt`, `training_metrics.csv`,
   `training_progress.json`, latest curve images, `img/*.jpg`, and `src/*.py`.
 - The required-ablation training queue completed on 2026-04-24:
@@ -198,8 +226,15 @@ testing.
   The queue ran:
   - `train_n100_wo_fusion_gate.py`
   - `train_n100_wo_cluster_bias.py`
-  The optional `train_n100_wo_priority_distance_bias.py` ablation remains
-  pending.
+  The old `train_n100_wo_priority_distance_bias.py` script remains in the repo,
+  but the final design now controls both bias terms together through
+  `train_n100_wo_all_bias.py`.
+- New full learnable-bias training is currently running:
+  - PID = 6897
+  - log = `training_runs/20260425_new_full_learnable_bias.log`
+  - result folder =
+    `CSTPd_cluster/POMO/result/25日_11点14分_cluster_n100_d1_new_full_learnable_bias`
+  - started_at = 2026-04-25 11:14 UTC
 
 ## Operation Log
 
@@ -329,6 +364,32 @@ testing.
   simply that this seed favored the ablation. Do not rewrite the main model
   claim until fixed-test evaluation and, ideally, repeated-seed checks confirm
   the pattern.
+- 2026-04-25: Final experiment set was revised to six models:
+  baseline, two legacy structural ablations, new learnable-bias full model,
+  old scheduled/fixed-bias ablation, and true `w/o all bias`.
+- 2026-04-25: Added inverse-softplus initialization for learnable same-group
+  bias so `same_group_bias_init` is the effective initial bias value.
+- 2026-04-25: Added `train_n100_learnable_bias.py` for the new full model:
+  `cluster_bias_mode='learnable'`, `priority_distance_bias=0.0`,
+  `relation_bias_mode='learnable'`, and `use_decoder_priority_bias=False`.
+- 2026-04-25: Updated `train_n100_wo_group_embedding.py` and
+  `train_n100_wo_fusion_gate.py` to use the same learnable-bias setup for
+  possible future retraining. Existing result folders remain legacy
+  scheduled-bias structural ablations.
+- 2026-04-25: Added `train_n100_wo_all_bias.py` for the true no-bias ablation.
+- 2026-04-25: Renamed tracked n100 result folders:
+  - baseline -> `CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1`
+  - old full -> `CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1`
+  - old `w/o_group_embedding` ->
+    `CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1`
+  - old `w/o_fusion_gate` ->
+    `CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1`
+- 2026-04-25: Removed the old tracked `w/o_cluster_bias` result folder from the
+  final model set because it is not a true `w/o all bias` ablation.
+- 2026-04-25: Started new full learnable-bias training in a detached process:
+  PID `6897`, log `training_runs/20260425_new_full_learnable_bias.log`,
+  result folder
+  `CSTPd_cluster/POMO/result/25日_11点14分_cluster_n100_d1_new_full_learnable_bias`.
 
 Update this section whenever long-running training or evaluation jobs are
 started, stopped, or completed.
