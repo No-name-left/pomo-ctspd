@@ -158,7 +158,15 @@ def cluster_params_from_state_dict(state_dict: dict[str, torch.Tensor], variant:
         params["num_groups"] = int(state_dict[group_key].size(0)) - 1
 
     if any("same_group_bias_param" in key for key in state_dict):
-        params["cluster_bias_mode"] = "learnable"
+        runtime_values = [
+            float(tensor.detach().cpu().item())
+            for key, tensor in state_dict.items()
+            if key.endswith("same_group_bias_runtime")
+        ]
+        if any(value > float(params["same_group_bias_init"]) + 1e-4 for value in runtime_values):
+            params["cluster_bias_mode"] = "scheduled_residual"
+        else:
+            params["cluster_bias_mode"] = "learnable"
     if not any("relation_attention_bias" in key for key in state_dict):
         params["relation_bias_mode"] = "none"
     if "decoder.decoder_priority_bias_table" not in state_dict:

@@ -82,17 +82,21 @@ from these scripts will be learnable-bias structural ablations.
 
 ## Final Bias Design
 
-The new full model treats the same-group and priority-distance attention biases
-as one learnable bias module:
+The new full model initializes from the old scheduled/fixed attention bias and
+learns residual relation bias:
 
 ```python
-cluster_bias_mode = 'learnable'
-priority_distance_bias = 0.0
+cluster_bias_mode = 'scheduled_residual'
+same_group_bias_init = 0.1
+same_group_bias_final = 1.25
+same_group_bias_warmup_epochs = 20
+priority_distance_bias = 0.15
 relation_bias_mode = 'learnable'
+relation_bias_init = 0.0
 use_decoder_priority_bias = False
 ```
 
-This replaces the old hand-crafted setup:
+With zero residuals this is exactly the old hand-crafted setup:
 
 ```python
 cluster_bias_mode = 'scheduled'
@@ -229,12 +233,17 @@ testing.
   The old `train_n100_wo_priority_distance_bias.py` script remains in the repo,
   but the final design now controls both bias terms together through
   `train_n100_wo_all_bias.py`.
-- New full learnable-bias training is currently running:
-  - PID = 6897
-  - log = `training_runs/20260425_new_full_learnable_bias.log`
-  - result folder =
-    `CSTPd_cluster/POMO/result/25日_11点14分_cluster_n100_d1_new_full_learnable_bias`
-  - started_at = 2026-04-25 11:14 UTC
+- New full learnable-bias training completed successfully under:
+  `CSTPd_cluster/POMO/result/25日_15点59分_cluster_n100_d1_new_full_learnable_bias/checkpoint-best.pt`
+  and `checkpoint-latest.pt`.
+  - epoch 160 / 160
+  - best_epoch = 160
+  - best_value = 15.724634099121094
+  - train_score = 15.724634099121094
+  - total_training_time_sec = 19769.08372759819
+  - avg_epoch_time_sec = 123.55677329748869
+  It improved the old scheduled/fixed-bias full training best
+  (`15.73443634338379`) by about `0.0098`.
 
 ## Operation Log
 
@@ -390,6 +399,43 @@ testing.
   PID `6897`, log `training_runs/20260425_new_full_learnable_bias.log`,
   result folder
   `CSTPd_cluster/POMO/result/25日_11点14分_cluster_n100_d1_new_full_learnable_bias`.
+- 2026-04-25: Stopped the first absolute-positive learnable-bias run at around
+  epoch 102 because its best training score remained behind both the old
+  scheduled full model and the old no-same-group-bias run. Reworked
+  `train_n100_learnable_bias.py` in-place to use `cluster_bias_mode =
+  'signed_learnable'`, `same_group_bias_init = 0.0`, `priority_distance_bias =
+  0.15`, `relation_bias_init = 0.0`, and a 30-to-80 epoch residual-bias warmup.
+  This makes the run initialize as the stronger no-same-group-bias model, then
+  learn signed residual structure instead of forcing positive same-group bias.
+- 2026-04-25: Restarted the reworked same full-model script in a detached
+  process: PID `21877`, log
+  `training_runs/20260425_new_full_learnable_bias_reworked.log`, result folder
+  `CSTPd_cluster/POMO/result/25日_14点47分_cluster_n100_d1_new_full_learnable_bias_run02`.
+- 2026-04-25: Stopped PID `21877` after clarifying that the intended new full
+  model should not use the no-same-group-bias run as the base. Reworked
+  `train_n100_learnable_bias.py` again to use `cluster_bias_mode =
+  'scheduled_residual'`, keeping the old full model's same-group schedule
+  (`0.1 -> 1.25` over 20 epochs) and fixed `priority_distance_bias = 0.15`,
+  while learning zero-initialized residual same-group/relation bias. Verified
+  that with zero residuals, attention bias matches the old full model exactly
+  at epochs 1, 10, 20, 21, 33, 80, and 160.
+- 2026-04-25: Restarted this old-bias-initialized learnable run in a detached
+  process: PID `26302`, log
+  `training_runs/20260425_new_full_learnable_bias_old_bias_init.log`, result
+  folder
+  `CSTPd_cluster/POMO/result/25日_15点59分_cluster_n100_d1_new_full_learnable_bias`.
+- 2026-04-25: The old-bias-initialized learnable run completed 160 epochs.
+  Final recorded result:
+  - best_epoch = 160
+  - best_value = 15.724634099121094
+  - latest epoch = 160
+  - latest train_score = 15.724634099121094
+  - total_training_time_sec = 19769.08372759819
+  - avg_epoch_time_sec = 123.55677329748869
+  Also updated `scripts/evaluate_ctspd.py` so checkpoints with
+  zero-initialized residual same-group parameters and a scheduled runtime bias
+  are loaded as `scheduled_residual` instead of plain positive `learnable`
+  bias.
 
 Update this section whenever long-running training or evaluation jobs are
 started, stopped, or completed.

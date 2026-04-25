@@ -191,6 +191,15 @@ class EncoderLayer(nn.Module):
         self.same_group_bias_init = float(self.model_params.get('same_group_bias_init', 0.1))
         self.same_group_bias_final = float(self.model_params.get('same_group_bias_final', 1.25))
         self.same_group_bias_max = float(self.model_params.get('same_group_bias_max', 2.0))
+        self.learnable_bias_start_epoch = max(
+            1,
+            int(self.model_params.get('learnable_bias_start_epoch', 1)),
+        )
+        self.learnable_bias_warmup_epochs = max(
+            1,
+            int(self.model_params.get('learnable_bias_warmup_epochs', 1)),
+        )
+        self.learnable_bias_scale_max = float(self.model_params.get('learnable_bias_scale_max', 1.0))
         self.same_group_bias_warmup_epochs = max(
             1,
             int(self.model_params.get('same_group_bias_warmup_epochs', 30)),
@@ -220,8 +229,17 @@ class EncoderLayer(nn.Module):
         )
         if self.cluster_bias_mode == 'learnable':
             self.same_group_bias_param = nn.Parameter(_inverse_softplus(self.same_group_bias_init))
+        elif self.cluster_bias_mode in ('signed_learnable', 'signed_residual'):
+            self.same_group_bias_param = nn.Parameter(torch.tensor(self.same_group_bias_init, dtype=torch.float32))
+        elif self.cluster_bias_mode in ('scheduled_residual', 'scheduled_plus_learnable'):
+            self.same_group_bias_param = nn.Parameter(torch.tensor(0.0, dtype=torch.float32))
         else:
             self.same_group_bias_param = None
+        self.register_buffer(
+            'learnable_bias_scale_runtime',
+            torch.tensor(self.learnable_bias_scale_max, dtype=torch.float32),
+            persistent=False,
+        )
         self.relation_attention_bias: Optional[nn.Parameter]
         if self.relation_bias_mode in ('learnable', 'headwise', 'relative', 'relative_learnable'):
             distances = torch.arange(self.relation_bias_max_distance + 1, dtype=torch.float32)
@@ -231,12 +249,14 @@ class EncoderLayer(nn.Module):
             self.relation_attention_bias = None
 
     def set_training_epoch(self, epoch, total_epochs):
-        if self.cluster_bias_mode != 'scheduled':
-            return
+        learnable_progress = float(epoch - self.learnable_bias_start_epoch + 1) / float(self.learnable_bias_warmup_epochs)
+        learnable_progress = min(1.0, max(0.0, learnable_progress))
+        self.learnable_bias_scale_runtime.fill_(learnable_progress * self.learnable_bias_scale_max)
 
-        progress = min(1.0, max(0.0, float(epoch - 1) / float(self.same_group_bias_warmup_epochs)))
-        value = self.same_group_bias_init + progress * (self.same_group_bias_final - self.same_group_bias_init)
-        self.same_group_bias_runtime.fill_(value)
+        if self.cluster_bias_mode in ('scheduled', 'scheduled_residual', 'scheduled_plus_learnable'):
+            progress = min(1.0, max(0.0, float(epoch - 1) / float(self.same_group_bias_warmup_epochs)))
+            value = self.same_group_bias_init + progress * (self.same_group_bias_final - self.same_group_bias_init)
+            self.same_group_bias_runtime.fill_(value)
 
     def forward(self, input1, group_ids=None):
         # input.shape: (batch, problem, EMBEDDING_DIM)
@@ -273,10 +293,23 @@ class EncoderLayer(nn.Module):
             if same_group_bias_param is None:
                 raise RuntimeError("cluster_bias_mode='learnable' requires same_group_bias_param.")
             bias = F.softplus(same_group_bias_param)
+        elif self.cluster_bias_mode in ('signed_learnable', 'signed_residual'):
+            same_group_bias_param = self.same_group_bias_param
+            if same_group_bias_param is None:
+                raise RuntimeError("cluster_bias_mode='signed_learnable' requires same_group_bias_param.")
+            scale = self.learnable_bias_scale_runtime.to(device=same_group_bias_param.device)
+            bias = same_group_bias_param * scale
+        elif self.cluster_bias_mode in ('scheduled_residual', 'scheduled_plus_learnable'):
+            same_group_bias_param = self.same_group_bias_param
+            if same_group_bias_param is None:
+                raise RuntimeError("cluster_bias_mode='scheduled_residual' requires same_group_bias_param.")
+            bias = self.same_group_bias_runtime + same_group_bias_param
         elif self.cluster_bias_mode == 'fixed':
             bias = torch.tensor(self.same_group_bias_final, device=self.same_group_bias_runtime.device)
         else:
             bias = self.same_group_bias_runtime
+        if self.cluster_bias_mode in ('signed_learnable', 'signed_residual'):
+            return torch.clamp(bias, min=-self.same_group_bias_max, max=self.same_group_bias_max)
         return torch.clamp(bias, min=0.0, max=self.same_group_bias_max)
 
     def _make_group_attention_bias(self, group_ids, device):
@@ -286,7 +319,7 @@ class EncoderLayer(nn.Module):
         same_group_bias = self._current_same_group_bias()
         use_same_group = False
         if same_group_bias is not None:
-            use_same_group = float(same_group_bias.detach().cpu()) > 0
+            use_same_group = abs(float(same_group_bias.detach().cpu())) > 0
         use_distance_bias = self.priority_distance_bias > 0
         use_relation_bias = self.relation_attention_bias is not None
         if not use_same_group and not use_distance_bias and not use_relation_bias:
@@ -329,6 +362,9 @@ class EncoderLayer(nn.Module):
             relation_attention_bias = self.relation_attention_bias
             if relation_attention_bias is None:
                 raise RuntimeError("relation_attention_bias is unexpectedly unset.")
+            relation_attention_bias = relation_attention_bias * self.learnable_bias_scale_runtime.to(
+                device=relation_attention_bias.device
+            )
             relation_bias = self._make_relation_attention_bias(
                 group_ids,
                 relation_attention_bias,
