@@ -105,6 +105,34 @@ relation_bias_mode = 'none'
 use_decoder_priority_bias = False
 ```
 
+Concrete differences between the old and new full models:
+
+- Same-group bias:
+  the old full model uses only the fixed schedule `0.1 -> 1.25` over the first
+  20 epochs. The new full model keeps this schedule as the base and adds a
+  learnable scalar residual:
+  `effective_same_group_bias = scheduled_bias + same_group_bias_param`.
+  `same_group_bias_param` starts at `0.0`, is updated by the optimizer through
+  normal backpropagation, and is clamped together with the scheduled value by
+  `same_group_bias_max`.
+- Priority-distance bias:
+  both models keep the same fixed `priority_distance_bias = 0.15`; this part is
+  intentionally unchanged.
+- Relation attention bias:
+  the old full model has no learned relation-bias table. The new full model
+  adds a learnable per-head/per-group-distance relation attention bias, with
+  `relation_bias_init = 0.0`, so it also starts from the old full model's
+  behavior.
+- Decoder priority bias:
+  both models keep `use_decoder_priority_bias = False`.
+
+Therefore the new full model is initialized to the old full model's attention
+bias behavior, then learns only residual corrections on top of that prior. This
+does not mathematically guarantee the final trained checkpoint must beat the old
+one, because optimization can still move parameters poorly, but it does make the
+initial model behavior equivalent and gives the model strictly more bias
+capacity.
+
 The true `w/o all bias` ablation keeps group embedding and the fusion gate but
 turns off all attention/logit bias terms:
 
