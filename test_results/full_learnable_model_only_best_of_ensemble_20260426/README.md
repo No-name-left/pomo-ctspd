@@ -19,6 +19,7 @@ Summary:
 
 | Protocol | Average cost | Average gap to LKH | Feasible rate |
 |---|---:|---:|---:|
+| Full learnable, enhanced sampling64 + same-priority LS20 | 25761.3 | 13.571954288993018% | 1.0 |
 | Full learnable, standard `anchor,mds` aug8 greedy | 27134.5 | 19.64153639788954% | 1.0 |
 | Full learnable, model-only best ensemble here | 26574.1 | 17.206078282859504% | 1.0 |
 | Scheduled/fixed, standard `anchor,mds` aug8 greedy | 26742.2 | 17.806783359242594% | 1.0 |
@@ -31,3 +32,10 @@ scheduled/fixed model under the standard instance-testing protocol. It still
 does not beat the `w/o group embedding` model under the same standard protocol.
 Use it as a deployment/inference-strength exploration, not as a fair ablation
 table where every model receives the same inference budget.
+
+Protocol note:
+The strongest recorded full learnable result on this external benchmark remains
+`25761.3` / `13.571954288993018%`, from the enhanced sampling64 plus
+same-priority local-search setting. The model-only ensemble result here is
+weaker than that enhanced result because it deliberately excludes local search
+and other traditional post-processing.

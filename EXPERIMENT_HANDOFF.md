@@ -304,6 +304,7 @@ instances:
 
 | Protocol | Average cost | Average gap to LKH | Feasible rate |
 |---|---:|---:|---:|
+| Full learnable, enhanced sampling64 + same-priority LS20 | 25761.3 | 13.571954288993018% | 1.0 |
 | Full learnable, standard `anchor,mds` aug8 greedy | 27134.5 | 19.64153639788954% | 1.0 |
 | Full learnable, model-only ensemble | 26574.1 | 17.206078282859504% | 1.0 |
 | Scheduled/fixed, standard `anchor,mds` aug8 greedy | 26742.2 | 17.806783359242594% | 1.0 |
@@ -315,6 +316,15 @@ local search, 2-opt, or same-priority swap search. It is useful as a deployment
 strengthening result: full learnable becomes better than the scheduled/fixed
 model under the standard external benchmark protocol, but it still does not
 beat `w/o group embedding` under that standard protocol.
+
+Important protocol distinction: the strongest recorded external benchmark
+number for the full learnable model is still `25761.3` with average LKH gap
+`13.571954288993018%`, but that number uses the enhanced sampling64 plus
+same-priority local-search protocol. The model-only ensemble number
+`26574.1` / `17.206078282859504%` should not be treated as replacing that
+stronger enhanced result; it answers the narrower question of how far the full
+model can be pushed when final tours must come directly from model-generated
+candidates and no local-search post-processing is allowed.
 
 Interpretation caution: the external benchmark is a transparent LKH comparison
 and generalization stress test. These models were trained on the synthetic
@@ -732,7 +742,10 @@ testing.
   `19.64153639788954%`) and slightly beats the scheduled/fixed model under the
   standard benchmark protocol (`26742.2`, `17.806783359242594%`), but still does
   not beat `w/o group embedding` under the standard protocol (`26507.0`,
-  `16.655800247413705%`). A later targeted sample512 run was started and then
+  `16.655800247413705%`). This model-only result also does not supersede the
+  stronger full learnable enhanced result (`25761.3`,
+  `13.571954288993018%`), because that enhanced result used sampling64 plus
+  same-priority local search. A later targeted sample512 run was started and then
   stopped at user request; its partial outputs were discarded and are not
   committed.
 
