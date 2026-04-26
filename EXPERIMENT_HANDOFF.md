@@ -1,10 +1,28 @@
 # POMO-CTSP-d Experiment Handoff
 
-Last updated: 2026-04-25
+Last updated: 2026-04-26
 
 This file records the experiment decisions and operational changes needed for
 another AI or researcher to continue the undergraduate-thesis experiment without
 reconstructing the project context from scratch.
+
+## Recommended Reading for Continuation
+
+Give a future AI or collaborator these files first:
+
+1. `EXPERIMENT_HANDOFF.md`
+   The authoritative current-state document: final model set, experiment
+   framing, result paths, caveats, and operation log.
+2. `README.md`
+   Repository-level overview and basic project orientation.
+3. `test_results/thesis_main_synthetic_n100_g8_d1_20260426/paper_artifacts/README.md`
+   Main same-distribution result tables/figures and how to use them.
+4. `test_results/thesis_benchmark_cluster_large_n100_d1_20260426/paper_artifacts/README.md`
+   External LKH comparison outputs and interpretation caution.
+5. `test_results/reproducibility_check_20260426/README.md`
+   Pass/fail reproducibility summary plus durable artifact checksums.
+6. `comparison_results/README.md`
+   Background for historical comparison/enhanced-inference outputs, if needed.
 
 ## Research Positioning
 
@@ -168,6 +186,88 @@ data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt
 
 All main models should be evaluated on exactly this file.
 
+## Final Result Outputs
+
+The final six-model thesis outputs produced on 2026-04-26 are:
+
+- Main same-distribution synthetic evaluation:
+  `test_results/thesis_main_synthetic_n100_g8_d1_20260426`
+  - inference setting:
+    8-fold geometric augmentation, greedy/POMO decoding, best candidate
+    selection over augmented directions and POMO starts, no stochastic sampling.
+  - fixed dataset:
+    `data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt`
+  - combined summary:
+    `test_results/thesis_main_synthetic_n100_g8_d1_20260426/summary.csv`
+  - paper-ready outputs:
+    `test_results/thesis_main_synthetic_n100_g8_d1_20260426/paper_artifacts`
+  - key files:
+    `main_results_table.csv`, `main_results_table.md`, `ablation_table.csv`,
+    `pairwise_win_table.csv`, `test_average_cost_dotplot.png/.pdf`,
+    `improvement_vs_baseline_bar.png/.pdf`,
+    `ablation_delta_vs_full_bar.png/.pdf`, and
+    `training_score_curves.png/.pdf`.
+- External LKH benchmark comparison:
+  `test_results/thesis_benchmark_cluster_large_n100_d1_20260426`
+  - inference setting:
+    `anchor,mds` reconstructed feature modes, 8-fold geometric augmentation on
+    those features, greedy/POMO decoding, best candidate selection by the
+    original CTSP-d distance matrix, no stochastic sampling or local search.
+  - instances:
+    `CTSPd(SOTA)/INSTANCES/Cluster_large/*100-C-*-1-*.ctspd`
+  - LKH references:
+    `test_results/thesis_benchmark_cluster_large_n100_d1_20260426/lkh_reference.csv`
+  - combined summary:
+    `test_results/thesis_benchmark_cluster_large_n100_d1_20260426/summary.csv`
+  - paper-ready outputs:
+    `test_results/thesis_benchmark_cluster_large_n100_d1_20260426/paper_artifacts`
+  - key files:
+    `benchmark_results_table.csv`, `benchmark_results_table.md`,
+    `per_instance_costs.csv`, `per_instance_winner_counts.csv`,
+    `pairwise_win_table.csv`, `gap_to_lkh_bar.png/.pdf`,
+    `per_instance_gap_heatmap.png/.pdf`, and
+    `model_costs_vs_lkh.png/.pdf`.
+- Reproducibility check:
+  `test_results/reproducibility_check_20260426`
+  - `README.md`: human-readable pass/fail report.
+  - `repro_check.json`: machine-readable checks and SHA256 checksums.
+  - The check strictly loaded all six `checkpoint-best.pt` files on CPU,
+    verified the fixed synthetic dataset metadata, verified all stored
+    synthetic and benchmark result row counts/seeds/feasibility rates, validated
+    paper figure file types, and dynamically reran the six-model benchmark
+    evaluation to confirm exact stored `model_cost` reproduction.
+
+Main same-distribution synthetic test averages on the 1000 fixed n100/g8/d1
+instances:
+
+| Model | Average cost | Feasible rate |
+|---|---:|---:|
+| Baseline | 15.49420291519165 | 1.0 |
+| New full learnable bias | 15.445868775367737 | 1.0 |
+| Scheduled/fixed bias | 15.452672064781188 | 1.0 |
+| True `w/o all bias` | 15.470991799354554 | 1.0 |
+| `w/o fusion gate` | 15.46614307975769 | 1.0 |
+| `w/o group embedding` | 15.69929798603058 | 1.0 |
+
+External LKH benchmark averages on the 10 `Cluster_large` n100/d1 instances:
+
+| Model | Average cost | Average gap to LKH | Feasible rate |
+|---|---:|---:|---:|
+| Baseline | 29491.1 | 30.023362228761982% | 1.0 |
+| New full learnable bias | 27134.5 | 19.64153639788954% | 1.0 |
+| Scheduled/fixed bias | 26742.2 | 17.806783359242594% | 1.0 |
+| True `w/o all bias` | 27291.9 | 20.34274308077898% | 1.0 |
+| `w/o fusion gate` | 27978.9 | 23.349276883571527% | 1.0 |
+| `w/o group embedding` | 26507.0 | 16.655800247413705% | 1.0 |
+
+Interpretation caution: the external benchmark is a transparent LKH comparison
+and generalization stress test. These models were trained on the synthetic
+n100/g8/d1 thesis distribution, not on TSPLIB-derived benchmark instances. The
+1000-instance fixed synthetic result should remain the main ablation evidence.
+The small external benchmark still favors the legacy `w/o group embedding`
+model under this augmented setting, which suggests distribution shift rather
+than overturning the same-distribution ablation conclusion.
+
 ## Evaluation Examples
 
 Synthetic main test:
@@ -178,7 +278,8 @@ python scripts/evaluate_ctspd.py \
   --model-variant learnable_bias \
   --checkpoint CSTPd_cluster/POMO/result/<run>/checkpoint-best.pt \
   --mode synthetic \
-  --dataset-file data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt
+  --dataset-file data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt \
+  --augmentation-factor 8
 ```
 
 Use `--model-variant scheduled_bias` for the old scheduled/fixed-bias ablation
@@ -193,7 +294,9 @@ python scripts/evaluate_ctspd.py \
   --checkpoint CSTPd_cluster/POMO/result/<run>/checkpoint-best.pt \
   --mode benchmark \
   --instance-glob "CTSPd(SOTA)/INSTANCES/Cluster_large/*100-C-*-1-*.ctspd" \
-  --lkh-reference lkh_reference.csv
+  --lkh-reference lkh_reference.csv \
+  --augmentation-factor 8 \
+  --benchmark-feature-modes anchor,mds
 ```
 
 The benchmark mode is external/generalization evaluation, not same-distribution
@@ -464,6 +567,80 @@ testing.
   zero-initialized residual same-group parameters and a scheduled runtime bias
   are loaded as `scheduled_residual` instead of plain positive `learnable`
   bias.
+- 2026-04-26: Removed historical tracked `result/` artifacts that are not part
+  of the final thesis model set:
+  - early n20 baseline/cluster train and test result folders
+  - early n20 generated tour folders under `CSTPd_bsl/POMO/result/tours` and
+    `CSTPd_cluster/POMO/result/tours`
+  This cleanup keeps the final n100/g8/d1 thesis result folders visible without
+  older tracked result folders causing confusion.
+- 2026-04-26: Started true `w/o all bias` training in a detached process:
+  PID `4537`, log `training_runs/20260426_wo_all_bias.log`, result folder
+  `CSTPd_cluster/POMO/result/26日_10点20分_cluster_n100_d1_wo_all_bias`.
+  This run uses `cluster_bias_mode='none'`, `priority_distance_bias=0.0`,
+  `relation_bias_mode='none'`, and `use_decoder_priority_bias=False`.
+- 2026-04-26: True `w/o all bias` training completed successfully.
+  Final recorded result:
+  - result folder:
+    `CSTPd_cluster/POMO/result/26日_10点20分_cluster_n100_d1_wo_all_bias`
+  - epoch = 160 / 160
+  - best_epoch = 157
+  - best_value = 15.770512321472168
+  - latest train_score = 15.773918809204101
+  - total_training_time_sec = 17786.283062696457
+  - avg_epoch_time_sec = 111.16426914185286
+  The result is worse than the new full learnable-bias run
+  (`15.724634099121094`) and the scheduled/fixed-bias ablation
+  (`15.73443634338379`), so it supports keeping priority-relation bias in the
+  final model design.
+- 2026-04-26: Completed augmented fixed synthetic test evaluation for the final six-model
+  set on:
+  `data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt`.
+  Inference used 8-fold geometric augmentation and greedy/POMO best selection.
+  Results are saved under:
+  `test_results/thesis_main_synthetic_n100_g8_d1_20260426`.
+  Paper-ready tables and figures are under:
+  `test_results/thesis_main_synthetic_n100_g8_d1_20260426/paper_artifacts`.
+  Main test averages:
+  - baseline: `15.49420291519165`
+  - new full learnable bias: `15.445868775367737`
+  - scheduled/fixed bias: `15.452672064781188`
+  - true `w/o all bias`: `15.470991799354554`
+  - `w/o fusion gate`: `15.46614307975769`
+  - `w/o group embedding`: `15.69929798603058`
+  All six evaluations had `feasible_rate = 1.0`.
+- 2026-04-26: Completed external benchmark instance testing for the final
+  six-model set on the 10 `Cluster_large` n100/d1 `.ctspd` instances under:
+  `CTSPd(SOTA)/INSTANCES/Cluster_large`.
+  Inference used `anchor,mds` reconstructed feature modes, 8-fold geometric
+  augmentation on those features, and greedy/POMO best selection by the original
+  CTSP-d distance matrix.
+  LKH reference costs were parsed from:
+  `CTSPd(SOTA)/TOURS/Cluster_large`.
+  Results are saved under:
+  `test_results/thesis_benchmark_cluster_large_n100_d1_20260426`.
+  Paper-ready tables and figures are under:
+  `test_results/thesis_benchmark_cluster_large_n100_d1_20260426/paper_artifacts`.
+  Average gaps to LKH:
+  - baseline: `30.023362228761982%`
+  - new full learnable bias: `19.64153639788954%`
+  - scheduled/fixed bias: `17.806783359242594%`
+  - true `w/o all bias`: `20.34274308077898%`
+  - `w/o fusion gate`: `23.349276883571527%`
+  - `w/o group embedding`: `16.655800247413705%`
+  All six benchmark evaluations had `feasible_rate = 1.0`.
+- 2026-04-26: Replaced the earlier unaugmented six-model synthetic and benchmark
+  test outputs after discovering that `scripts/evaluate_ctspd.py` had not been
+  passing `aug_factor` to the environment. The committed outputs in
+  `test_results/thesis_main_synthetic_n100_g8_d1_20260426` and
+  `test_results/thesis_benchmark_cluster_large_n100_d1_20260426` now reflect
+  augmented inference.
+- 2026-04-26: Completed reproducibility check and saved the report under:
+  `test_results/reproducibility_check_20260426`.
+  The check passed. It included strict CPU loading of all six
+  `checkpoint-best.pt` files, metadata/row-count/seed/feasibility validation
+  for stored synthetic and benchmark outputs, PNG/PDF artifact validation, and
+  an exact dynamic rerun comparison of the six-model external benchmark.
 
 Update this section whenever long-running training or evaluation jobs are
 started, stopped, or completed.

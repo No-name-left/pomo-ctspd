@@ -1,0 +1,53 @@
+{
+  "created_at": "2026-04-26T17:50:31",
+  "experiment_dir": "/root/autodl-tmp/test_results/thesis_main_synthetic_n100_g8_d1_20260426/evaluations/baseline",
+  "checkpoint_path": "/root/autodl-tmp/CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/checkpoint-best.pt",
+  "checkpoint_epoch": 155,
+  "model_type": "baseline",
+  "model_variant": "baseline",
+  "model_params": {
+    "embedding_dim": 128,
+    "sqrt_embedding_dim": 11.313708498984761,
+    "encoder_layer_num": 6,
+    "qkv_dim": 16,
+    "head_num": 8,
+    "logit_clipping": 10,
+    "ff_hidden_dim": 512,
+    "eval_type": "argmax"
+  },
+  "dataset_type": "synthetic_fixed",
+  "dataset_metadata": {
+    "dataset_type": "synthetic_fixed",
+    "created_at": "2026-04-23T15:09:27",
+    "problem_size": 100,
+    "num_groups": 8,
+    "relaxation_d": 1,
+    "instance_num": 1000,
+    "seed": 20260423,
+    "notes": "Fixed same-distribution synthetic test set: random coordinates and random priority-group assignment. This is the main n100/g8/d1 test set."
+  },
+  "problem_size": 100,
+  "num_groups": 8,
+  "relaxation_d": 1,
+  "test_instance_num": 1000,
+  "average_cost": 15.49420291519165,
+  "std_cost": 0.5106540917844596,
+  "best_cost": 13.90545654296875,
+  "worst_cost": 17.335050582885742,
+  "feasible_rate": 1.0,
+  "average_violation_count": 0.0,
+  "total_inference_time_sec": 61.96354043111205,
+  "inference_time_per_instance_sec": 0.06196354043111205,
+  "augmentation_factor": 8,
+  "feature_modes": [
+    "anchor"
+  ],
+  "sampling_runs": 0,
+  "average_gap_to_lkh_percent": null,
+  "median_gap_to_lkh_percent": null,
+  "best_gap_to_lkh_percent": null,
+  "worst_gap_to_lkh_percent": null,
+  "seed": 20260423,
+  "device": "cuda",
+  "lkh_reference": null
+}

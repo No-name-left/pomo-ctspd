@@ -1,0 +1,11 @@
+instance_id,dataset_type,problem_size,num_groups,relaxation_d,model_cost,inference_time_sec,augmentation_factor,feature_mode,decode_mode,decode_run,best_batch_idx,best_pomo_idx,is_feasible,violation_count,lkh_cost,gap_to_lkh_percent,source_path
+kroA100-C-3-1-a,benchmark_external,100,4,1,25964.0,0.6561943367123604,8,mds,greedy,0,7,14,True,0,22845.0,13.652878091486102,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroA100-C-3-1-a.ctspd
+kroA100-C-5-1-a,benchmark_external,100,6,1,27070.0,0.1275593861937523,8,mds,greedy,0,2,2,True,0,22589.0,19.837088848554608,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroA100-C-5-1-a.ctspd
+kroB100-C-3-1-a,benchmark_external,100,4,1,26590.0,0.12694603018462658,8,mds,greedy,0,0,19,True,0,22141.0,20.093943362991734,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroB100-C-3-1-a.ctspd
+kroB100-C-5-1-a,benchmark_external,100,6,1,27711.0,0.12749595195055008,8,mds,greedy,0,5,12,True,0,23159.0,19.655425536508485,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroB100-C-5-1-a.ctspd
+kroC100-C-3-1-a,benchmark_external,100,4,1,23846.0,0.1356150023639202,8,mds,greedy,0,4,28,True,0,20910.0,14.041128646580583,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroC100-C-3-1-a.ctspd
+kroC100-C-5-1-a,benchmark_external,100,6,1,25555.0,0.13772094994783401,8,mds,greedy,0,3,0,True,0,22827.0,11.950760064835501,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroC100-C-5-1-a.ctspd
+kroD100-C-3-1-a,benchmark_external,100,4,1,25878.0,0.12737032771110535,8,mds,greedy,0,7,15,True,0,21944.0,17.927451695224207,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroD100-C-3-1-a.ctspd
+kroD100-C-5-1-a,benchmark_external,100,6,1,28654.0,0.1308462806046009,8,mds,greedy,0,1,3,True,0,25102.0,14.150266911003106,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroD100-C-5-1-a.ctspd
+kroE100-C-3-1-a,benchmark_external,100,4,1,25872.0,0.12803206779062748,8,mds,greedy,0,0,2,True,0,22121.0,16.956737941322725,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroE100-C-3-1-a.ctspd
+kroE100-C-5-1-a,benchmark_external,100,6,1,27930.0,0.1275826320052147,8,mds,greedy,0,0,1,True,0,23611.0,18.292321375630003,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroE100-C-5-1-a.ctspd

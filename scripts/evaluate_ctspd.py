@@ -10,6 +10,7 @@ from pathlib import Path
 from statistics import mean, median, pstdev
 from typing import Any, Optional
 
+import numpy as np
 import torch
 
 
@@ -63,6 +64,12 @@ INSTANCE_FIELDS = [
     "relaxation_d",
     "model_cost",
     "inference_time_sec",
+    "augmentation_factor",
+    "feature_mode",
+    "decode_mode",
+    "decode_run",
+    "best_batch_idx",
+    "best_pomo_idx",
     "is_feasible",
     "violation_count",
     "lkh_cost",
@@ -88,6 +95,9 @@ SUMMARY_FIELDS = [
     "average_violation_count",
     "total_inference_time_sec",
     "inference_time_per_instance_sec",
+    "augmentation_factor",
+    "feature_modes",
+    "sampling_runs",
     "average_gap_to_lkh_percent",
     "median_gap_to_lkh_percent",
     "best_gap_to_lkh_percent",
@@ -123,6 +133,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=20260423)
     parser.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
     parser.add_argument("--lkh-reference", default=None, help="Optional CSV with instance_id,lkh_cost columns.")
+    parser.add_argument(
+        "--augmentation-factor",
+        type=int,
+        default=1,
+        choices=[1, 8],
+        help="Use 8-fold geometric augmentation and select the best POMO tour.",
+    )
+    parser.add_argument(
+        "--benchmark-feature-modes",
+        default="anchor",
+        help="Comma-separated feature modes for benchmark mode: anchor,mds. Synthetic mode always uses anchor.",
+    )
+    parser.add_argument(
+        "--sampling-runs",
+        type=int,
+        default=0,
+        help="Extra stochastic softmax decoding runs. Greedy decoding is always included.",
+    )
     parser.add_argument("--output-dir", default=None)
     return parser.parse_args()
 
@@ -240,6 +268,57 @@ def calc_tour_cost(tour: list[int], dist_matrix: torch.Tensor) -> float:
     return total
 
 
+def parse_feature_modes(raw: str) -> list[str]:
+    modes = [item.strip() for item in raw.split(",") if item.strip()]
+    if not modes:
+        return ["anchor"]
+    allowed = {"anchor", "mds"}
+    unsupported = sorted(set(modes) - allowed)
+    if unsupported:
+        raise ValueError(f"Unsupported feature modes: {unsupported}")
+    return modes
+
+
+def coords_from_distance_matrix_mds(dist_matrix: torch.Tensor) -> torch.Tensor:
+    dist = dist_matrix.detach().cpu().numpy().astype(np.float64)
+    n_nodes = dist.shape[0]
+    if n_nodes == 1:
+        return torch.zeros((1, 2), dtype=torch.float32)
+
+    squared = dist ** 2
+    centering = np.eye(n_nodes) - np.ones((n_nodes, n_nodes)) / n_nodes
+    gram = -0.5 * centering @ squared @ centering
+    eigvals, eigvecs = np.linalg.eigh(gram)
+    order = np.argsort(eigvals)[::-1]
+    top = order[:2]
+    vals = np.maximum(eigvals[top], 0.0)
+    coords = eigvecs[:, top] * np.sqrt(vals)[None, :]
+
+    if coords.shape[1] < 2 or np.allclose(coords, 0.0):
+        coords = np.stack([dist.mean(axis=1), dist.max(axis=1)], axis=1)
+
+    coords_min = coords.min(axis=0, keepdims=True)
+    coords_max = coords.max(axis=0, keepdims=True)
+    coords = (coords - coords_min) / np.maximum(coords_max - coords_min, 1e-8)
+    return torch.from_numpy(coords.astype(np.float32))
+
+
+def make_problem_features(
+    base_problems: torch.Tensor,
+    raw_dist: Optional[torch.Tensor],
+    feature_mode: str,
+) -> torch.Tensor:
+    problems = base_problems.detach().cpu().clone()
+    if feature_mode == "anchor":
+        return problems
+    if feature_mode == "mds":
+        if raw_dist is None:
+            raise ValueError("mds feature mode requires a raw distance matrix.")
+        problems[0, :, :2] = coords_from_distance_matrix_mds(raw_dist)
+        return problems
+    raise ValueError(f"Unsupported feature mode: {feature_mode}")
+
+
 def calc_feasibility(tour: list[int], priorities: torch.Tensor, relaxation_d: int) -> tuple[int, bool]:
     n_nodes = int(priorities.numel())
     duplicate_or_missing = len(set(tour)) != n_nodes or len(tour) != n_nodes
@@ -259,20 +338,22 @@ def calc_feasibility(tour: list[int], priorities: torch.Tensor, relaxation_d: in
     return violations, violations == 0
 
 
-def best_tour_from_reward(selected_node_list: torch.Tensor, reward: torch.Tensor) -> tuple[list[int], float]:
+def best_tour_from_reward(selected_node_list: torch.Tensor, reward: torch.Tensor) -> tuple[list[int], float, int, int]:
     best_flat_idx = int(reward.argmax().item())
     pomo_size = int(reward.size(1))
     best_batch_idx = best_flat_idx // pomo_size
     best_pomo_idx = best_flat_idx % pomo_size
     tour = [int(node) for node in selected_node_list[best_batch_idx, best_pomo_idx].detach().cpu().tolist()]
-    return tour, -float(reward[best_batch_idx, best_pomo_idx].item())
+    return tour, -float(reward[best_batch_idx, best_pomo_idx].item()), best_batch_idx, best_pomo_idx
 
 
-def best_tour_by_raw_distance(selected_node_list: torch.Tensor, dist_matrix: torch.Tensor) -> tuple[list[int], float]:
+def best_tour_by_raw_distance(selected_node_list: torch.Tensor, dist_matrix: torch.Tensor) -> tuple[list[int], float, int, int]:
     selected_cpu = selected_node_list.detach().cpu()
     dist_cpu = dist_matrix.detach().cpu()
     best_tour = None
     best_cost = None
+    best_batch_idx = -1
+    best_pomo_idx = -1
     for batch_idx in range(int(selected_cpu.size(0))):
         for pomo_idx in range(int(selected_cpu.size(1))):
             tour = [int(node) for node in selected_cpu[batch_idx, pomo_idx].tolist()]
@@ -280,9 +361,11 @@ def best_tour_by_raw_distance(selected_node_list: torch.Tensor, dist_matrix: tor
             if best_cost is None or cost < best_cost:
                 best_tour = tour
                 best_cost = cost
+                best_batch_idx = batch_idx
+                best_pomo_idx = pomo_idx
     if best_tour is None or best_cost is None:
         raise RuntimeError("No tour produced.")
-    return best_tour, best_cost
+    return best_tour, best_cost, best_batch_idx, best_pomo_idx
 
 
 def run_one_instance(
@@ -293,7 +376,11 @@ def run_one_instance(
     relaxation_d: int,
     num_groups: int,
     device: torch.device,
-) -> tuple[float, float, int, bool]:
+    augmentation_factor: int,
+    feature_mode: str,
+    decode_mode: str,
+    decode_run: int,
+) -> dict[str, Any]:
     n_nodes = int(problems.size(1))
     env = env_cls(
         problem_size=n_nodes,
@@ -301,27 +388,103 @@ def run_one_instance(
         num_groups=num_groups,
         relaxation_d=relaxation_d,
     )
-    synchronize_if_needed(device)
-    start = time.perf_counter()
-    with torch.inference_mode():
-        env.load_problems(1, problems=problems.to(device), relaxation_d=relaxation_d)
-        reset_state, _, _ = env.reset()
-        model.pre_forward(reset_state)
-        state, reward, done = env.pre_step()
-        while not done:
-            selected, _ = model(state)
-            state, reward, done = env.step(selected)
-    synchronize_if_needed(device)
-    elapsed = time.perf_counter() - start
+    old_eval_type = getattr(model, "model_params", {}).get("eval_type")
+    if hasattr(model, "model_params"):
+        model.model_params["eval_type"] = "softmax" if decode_mode == "sample" else "argmax"
+    try:
+        synchronize_if_needed(device)
+        start = time.perf_counter()
+        with torch.inference_mode():
+            env.load_problems(
+                1,
+                aug_factor=augmentation_factor,
+                problems=problems.to(device),
+                relaxation_d=relaxation_d,
+            )
+            reset_state, _, _ = env.reset()
+            model.pre_forward(reset_state)
+            state, reward, done = env.pre_step()
+            while not done:
+                selected, _ = model(state)
+                state, reward, done = env.step(selected)
+        synchronize_if_needed(device)
+        elapsed = time.perf_counter() - start
+    finally:
+        if hasattr(model, "model_params"):
+            model.model_params["eval_type"] = old_eval_type
+
     if reward is None or env.selected_node_list is None:
         raise RuntimeError("Inference did not finish correctly.")
 
     if raw_dist is None:
-        tour, cost = best_tour_from_reward(env.selected_node_list, reward)
+        tour, cost, best_batch_idx, best_pomo_idx = best_tour_from_reward(env.selected_node_list, reward)
     else:
-        tour, cost = best_tour_by_raw_distance(env.selected_node_list, raw_dist)
+        tour, cost, best_batch_idx, best_pomo_idx = best_tour_by_raw_distance(env.selected_node_list, raw_dist)
     violations, feasible = calc_feasibility(tour, problems[0, :, 2].detach().cpu(), relaxation_d)
-    return cost, elapsed, violations, feasible
+    return {
+        "tour": tour,
+        "cost": cost,
+        "time_sec": elapsed,
+        "violation_count": violations,
+        "feasible": feasible,
+        "feature_mode": feature_mode,
+        "decode_mode": decode_mode,
+        "decode_run": decode_run,
+        "best_batch_idx": best_batch_idx,
+        "best_pomo_idx": best_pomo_idx,
+    }
+
+
+def run_best_instance(
+    model: torch.nn.Module,
+    env_cls: type,
+    base_problems: torch.Tensor,
+    raw_dist: Optional[torch.Tensor],
+    relaxation_d: int,
+    num_groups: int,
+    device: torch.device,
+    augmentation_factor: int,
+    feature_modes: list[str],
+    sampling_runs: int,
+) -> dict[str, Any]:
+    best = None
+    total_time = 0.0
+    tried_configs = []
+    decode_plan = [("greedy", 0)]
+    decode_plan.extend(("sample", run_idx + 1) for run_idx in range(sampling_runs))
+
+    for feature_mode in feature_modes:
+        problems = make_problem_features(base_problems, raw_dist, feature_mode)
+        for decode_mode, decode_run in decode_plan:
+            result = run_one_instance(
+                model,
+                env_cls,
+                problems,
+                raw_dist,
+                relaxation_d,
+                num_groups,
+                device,
+                augmentation_factor,
+                feature_mode,
+                decode_mode,
+                decode_run,
+            )
+            total_time += float(result["time_sec"])
+            tried_configs.append({
+                "feature_mode": feature_mode,
+                "decode_mode": decode_mode,
+                "decode_run": decode_run,
+                "cost": result["cost"],
+                "time_sec": result["time_sec"],
+            })
+            if best is None or result["cost"] < best["cost"]:
+                best = result
+
+    if best is None:
+        raise RuntimeError("No inference configuration was evaluated.")
+    best["time_sec"] = total_time
+    best["tried_configs"] = tried_configs
+    return best
 
 
 def synchronize_if_needed(device: torch.device) -> None:
@@ -432,10 +595,12 @@ def main() -> None:
         if not args.dataset_file:
             raise ValueError("--dataset-file is required for synthetic mode.")
         cases, dataset_metadata = load_synthetic_cases(Path(args.dataset_file).resolve(), args.limit)
+        feature_modes = ["anchor"]
     else:
         if not args.instance_glob:
             raise ValueError("--instance-glob is required for benchmark mode.")
         cases, dataset_metadata = load_benchmark_cases(args.instance_glob, args.limit)
+        feature_modes = parse_feature_modes(args.benchmark_feature_modes)
 
     lkh_reference = read_lkh_reference(args.lkh_reference)
     dataset_type = cases[0]["dataset_type"] if cases else args.mode
@@ -443,7 +608,7 @@ def main() -> None:
 
     rows = []
     for idx, case in enumerate(cases, start=1):
-        cost, elapsed, violations, feasible = run_one_instance(
+        result = run_best_instance(
             model,
             env_cls,
             case["problems"],
@@ -451,6 +616,9 @@ def main() -> None:
             case["relaxation_d"],
             case["num_groups"],
             device,
+            args.augmentation_factor,
+            feature_modes,
+            args.sampling_runs,
         )
         lkh_cost = lkh_reference.get(case["instance_id"])
         row = {
@@ -459,12 +627,18 @@ def main() -> None:
             "problem_size": case["problem_size"],
             "num_groups": case["num_groups"],
             "relaxation_d": case["relaxation_d"],
-            "model_cost": cost,
-            "inference_time_sec": elapsed,
-            "is_feasible": feasible,
-            "violation_count": violations,
+            "model_cost": result["cost"],
+            "inference_time_sec": result["time_sec"],
+            "augmentation_factor": args.augmentation_factor,
+            "feature_mode": result["feature_mode"],
+            "decode_mode": result["decode_mode"],
+            "decode_run": result["decode_run"],
+            "best_batch_idx": result["best_batch_idx"],
+            "best_pomo_idx": result["best_pomo_idx"],
+            "is_feasible": result["feasible"],
+            "violation_count": result["violation_count"],
             "lkh_cost": lkh_cost,
-            "gap_to_lkh_percent": pct_gap(cost, lkh_cost),
+            "gap_to_lkh_percent": pct_gap(result["cost"], lkh_cost),
             "source_path": case["source_path"],
         }
         rows.append(row)
@@ -473,9 +647,9 @@ def main() -> None:
                 idx,
                 len(cases),
                 case["instance_id"],
-                cost,
-                elapsed,
-                feasible,
+                result["cost"],
+                result["time_sec"],
+                result["feasible"],
             )
         )
 
@@ -510,6 +684,9 @@ def main() -> None:
         "average_violation_count": stat_or_none(violations, mean),
         "total_inference_time_sec": total_time,
         "inference_time_per_instance_sec": total_time / len(rows) if rows else None,
+        "augmentation_factor": args.augmentation_factor,
+        "feature_modes": feature_modes,
+        "sampling_runs": args.sampling_runs,
         "average_gap_to_lkh_percent": stat_or_none(gaps, mean),
         "median_gap_to_lkh_percent": stat_or_none(gaps, median),
         "best_gap_to_lkh_percent": stat_or_none(gaps, min),
