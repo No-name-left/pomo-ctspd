@@ -227,6 +227,19 @@ The final six-model thesis outputs produced on 2026-04-26 are:
     `pairwise_win_table.csv`, `gap_to_lkh_bar.png/.pdf`,
     `per_instance_gap_heatmap.png/.pdf`, and
     `model_costs_vs_lkh.png/.pdf`.
+- Enhanced external LKH benchmark stress test:
+  `test_results/thesis_benchmark_cluster_large_n100_d1_aug8_sample64_ls20_20260426`
+  - inference setting:
+    `anchor,mds` reconstructed feature modes, 8-fold geometric augmentation,
+    greedy/POMO decoding plus 64 stochastic sampling runs per feature mode,
+    best candidate selection by the original CTSP-d distance matrix, and
+    same-priority swap local search with up to 20 passes.
+  - combined summary:
+    `test_results/thesis_benchmark_cluster_large_n100_d1_aug8_sample64_ls20_20260426/summary.csv`
+  - per-model outputs:
+    `test_results/thesis_benchmark_cluster_large_n100_d1_aug8_sample64_ls20_20260426/evaluations/<model>/`
+  - each per-model output includes `test_instances.csv`, `test_summary.json`,
+    and 10 saved final `.tour` files.
 - Reproducibility check:
   `test_results/reproducibility_check_20260426`
   - `README.md`: human-readable pass/fail report.
@@ -260,13 +273,26 @@ External LKH benchmark averages on the 10 `Cluster_large` n100/d1 instances:
 | `w/o fusion gate` | 27978.9 | 23.349276883571527% | 1.0 |
 | `w/o group embedding` | 26507.0 | 16.655800247413705% | 1.0 |
 
+Enhanced external LKH benchmark averages with sampling64 plus same-priority
+local search on the same 10 instances:
+
+| Model | Average cost | Average gap to LKH | Feasible rate |
+|---|---:|---:|---:|
+| Baseline | 27038.5 | 19.107016748752358% | 1.0 |
+| New full learnable bias | 25761.3 | 13.571954288993018% | 1.0 |
+| Scheduled/fixed bias | 25305.0 | 11.509764257512131% | 1.0 |
+| True `w/o all bias` | 25787.2 | 13.734386120421016% | 1.0 |
+| `w/o fusion gate` | 26000.9 | 14.592376703089329% | 1.0 |
+| `w/o group embedding` | 24272.4 | 6.88054973950998% | 1.0 |
+
 Interpretation caution: the external benchmark is a transparent LKH comparison
 and generalization stress test. These models were trained on the synthetic
 n100/g8/d1 thesis distribution, not on TSPLIB-derived benchmark instances. The
 1000-instance fixed synthetic result should remain the main ablation evidence.
 The small external benchmark still favors the legacy `w/o group embedding`
-model under this augmented setting, which suggests distribution shift rather
-than overturning the same-distribution ablation conclusion.
+model under both the greedy augmented and the sampling64+local-search settings,
+which suggests distribution shift rather than overturning the same-distribution
+ablation conclusion.
 
 ## Evaluation Examples
 
@@ -641,6 +667,22 @@ testing.
   `checkpoint-best.pt` files, metadata/row-count/seed/feasibility validation
   for stored synthetic and benchmark outputs, PNG/PDF artifact validation, and
   an exact dynamic rerun comparison of the six-model external benchmark.
+- 2026-04-26: Added same-priority local search and tour saving to
+  `scripts/evaluate_ctspd.py`, then ran the six final models on the external
+  LKH benchmark with the full enhanced inference budget:
+  `anchor,mds` features, 8-fold augmentation, greedy plus 64 stochastic
+  sampling runs, and same-priority local search with up to 20 passes. Results
+  are saved under
+  `test_results/thesis_benchmark_cluster_large_n100_d1_aug8_sample64_ls20_20260426`.
+  The enhanced external benchmark improves all models but still does not make
+  the new full learnable-bias model the best external-benchmark model:
+  `w/o group embedding` has average gap `6.88054973950998%`, scheduled/fixed
+  bias has `11.509764257512131%`, and full learnable bias has
+  `13.571954288993018%`.
+  A non-committed local diagnostic run using the full learnable checkpoint
+  while disabling group embedding or the fusion gate at inference time did not
+  improve the full checkpoint on the external benchmark: the average gaps were
+  `18.1056477089938%` and `20.677089255168337%`, respectively.
 
 Update this section whenever long-running training or evaluation jobs are
 started, stopped, or completed.
