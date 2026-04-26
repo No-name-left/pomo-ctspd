@@ -71,6 +71,8 @@ INSTANCE_FIELDS = [
     "feature_mode",
     "decode_mode",
     "decode_run",
+    "sampling_temperature",
+    "sampling_top_k",
     "best_batch_idx",
     "best_pomo_idx",
     "is_feasible",
@@ -102,6 +104,8 @@ SUMMARY_FIELDS = [
     "augmentation_factor",
     "feature_modes",
     "sampling_runs",
+    "sampling_temperatures",
+    "sampling_top_ks",
     "same_priority_ls_passes",
     "average_cost_before_local_search",
     "average_local_search_improvement",
@@ -157,6 +161,16 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=0,
         help="Extra stochastic softmax decoding runs. Greedy decoding is always included.",
+    )
+    parser.add_argument(
+        "--sampling-temperatures",
+        default="1.0",
+        help="Comma-separated softmax sampling temperatures for sample decoding.",
+    )
+    parser.add_argument(
+        "--sampling-top-ks",
+        default="0",
+        help="Comma-separated top-k filters for sample decoding. Use 0 for no top-k filter.",
     )
     parser.add_argument(
         "--same-priority-ls-passes",
@@ -353,11 +367,37 @@ def parse_feature_modes(raw: str) -> list[str]:
     modes = [item.strip() for item in raw.split(",") if item.strip()]
     if not modes:
         return ["anchor"]
-    allowed = {"anchor", "mds"}
+    allowed = {"anchor", "mds", "farthest", "central", "meanmax"}
     unsupported = sorted(set(modes) - allowed)
     if unsupported:
         raise ValueError(f"Unsupported feature modes: {unsupported}")
     return modes
+
+
+def normalize_coords(coords: np.ndarray) -> torch.Tensor:
+    coords = np.asarray(coords, dtype=np.float64)
+    coords_min = coords.min(axis=0, keepdims=True)
+    coords_max = coords.max(axis=0, keepdims=True)
+    coords = (coords - coords_min) / np.maximum(coords_max - coords_min, 1e-8)
+    return torch.from_numpy(coords.astype(np.float32))
+
+
+def parse_float_list(raw: str) -> list[float]:
+    values = [float(item.strip()) for item in raw.split(",") if item.strip()]
+    if not values:
+        return [1.0]
+    if any(value <= 0 for value in values):
+        raise ValueError("All sampling temperatures must be positive.")
+    return values
+
+
+def parse_int_list(raw: str) -> list[int]:
+    values = [int(item.strip()) for item in raw.split(",") if item.strip()]
+    if not values:
+        return [0]
+    if any(value < 0 for value in values):
+        raise ValueError("All sampling top-k values must be non-negative.")
+    return values
 
 
 def coords_from_distance_matrix_mds(dist_matrix: torch.Tensor) -> torch.Tensor:
@@ -378,10 +418,24 @@ def coords_from_distance_matrix_mds(dist_matrix: torch.Tensor) -> torch.Tensor:
     if coords.shape[1] < 2 or np.allclose(coords, 0.0):
         coords = np.stack([dist.mean(axis=1), dist.max(axis=1)], axis=1)
 
-    coords_min = coords.min(axis=0, keepdims=True)
-    coords_max = coords.max(axis=0, keepdims=True)
-    coords = (coords - coords_min) / np.maximum(coords_max - coords_min, 1e-8)
-    return torch.from_numpy(coords.astype(np.float32))
+    return normalize_coords(coords)
+
+
+def coords_from_distance_landmarks(dist_matrix: torch.Tensor, mode: str) -> torch.Tensor:
+    dist = dist_matrix.detach().cpu().numpy().astype(np.float64)
+    if mode == "farthest":
+        anchor_a, anchor_b = np.unravel_index(np.argmax(dist), dist.shape)
+    elif mode == "central":
+        mean_dist = dist.mean(axis=1)
+        anchor_a = int(np.argmin(mean_dist))
+        anchor_b = int(np.argmax(mean_dist))
+    elif mode == "meanmax":
+        coords = np.stack([dist.mean(axis=1), dist.max(axis=1)], axis=1)
+        return normalize_coords(coords)
+    else:
+        raise ValueError(f"Unsupported landmark feature mode: {mode}")
+    coords = np.stack([dist[:, anchor_a], dist[:, anchor_b]], axis=1)
+    return normalize_coords(coords)
 
 
 def make_problem_features(
@@ -396,6 +450,11 @@ def make_problem_features(
         if raw_dist is None:
             raise ValueError("mds feature mode requires a raw distance matrix.")
         problems[0, :, :2] = coords_from_distance_matrix_mds(raw_dist)
+        return problems
+    if feature_mode in {"farthest", "central", "meanmax"}:
+        if raw_dist is None:
+            raise ValueError(f"{feature_mode} feature mode requires a raw distance matrix.")
+        problems[0, :, :2] = coords_from_distance_landmarks(raw_dist, feature_mode)
         return problems
     raise ValueError(f"Unsupported feature mode: {feature_mode}")
 
@@ -461,6 +520,8 @@ def run_one_instance(
     feature_mode: str,
     decode_mode: str,
     decode_run: int,
+    sampling_temperature: float,
+    sampling_top_k: int,
 ) -> dict[str, Any]:
     n_nodes = int(problems.size(1))
     env = env_cls(
@@ -470,8 +531,12 @@ def run_one_instance(
         relaxation_d=relaxation_d,
     )
     old_eval_type = getattr(model, "model_params", {}).get("eval_type")
+    old_sampling_temperature = getattr(model, "model_params", {}).get("sampling_temperature")
+    old_sampling_top_k = getattr(model, "model_params", {}).get("sampling_top_k")
     if hasattr(model, "model_params"):
         model.model_params["eval_type"] = "softmax" if decode_mode == "sample" else "argmax"
+        model.model_params["sampling_temperature"] = sampling_temperature
+        model.model_params["sampling_top_k"] = sampling_top_k
     try:
         synchronize_if_needed(device)
         start = time.perf_counter()
@@ -493,6 +558,14 @@ def run_one_instance(
     finally:
         if hasattr(model, "model_params"):
             model.model_params["eval_type"] = old_eval_type
+            if old_sampling_temperature is None:
+                model.model_params.pop("sampling_temperature", None)
+            else:
+                model.model_params["sampling_temperature"] = old_sampling_temperature
+            if old_sampling_top_k is None:
+                model.model_params.pop("sampling_top_k", None)
+            else:
+                model.model_params["sampling_top_k"] = old_sampling_top_k
 
     if reward is None or env.selected_node_list is None:
         raise RuntimeError("Inference did not finish correctly.")
@@ -511,6 +584,8 @@ def run_one_instance(
         "feature_mode": feature_mode,
         "decode_mode": decode_mode,
         "decode_run": decode_run,
+        "sampling_temperature": sampling_temperature,
+        "sampling_top_k": sampling_top_k,
         "best_batch_idx": best_batch_idx,
         "best_pomo_idx": best_pomo_idx,
     }
@@ -527,16 +602,23 @@ def run_best_instance(
     augmentation_factor: int,
     feature_modes: list[str],
     sampling_runs: int,
+    sampling_temperatures: list[float],
+    sampling_top_ks: list[int],
 ) -> dict[str, Any]:
     best = None
     total_time = 0.0
     tried_configs = []
-    decode_plan = [("greedy", 0)]
-    decode_plan.extend(("sample", run_idx + 1) for run_idx in range(sampling_runs))
+    decode_plan = [("greedy", 0, 1.0, 0)]
+    for temperature in sampling_temperatures:
+        for top_k in sampling_top_ks:
+            decode_plan.extend(
+                ("sample", run_idx + 1, temperature, top_k)
+                for run_idx in range(sampling_runs)
+            )
 
     for feature_mode in feature_modes:
         problems = make_problem_features(base_problems, raw_dist, feature_mode)
-        for decode_mode, decode_run in decode_plan:
+        for decode_mode, decode_run, sampling_temperature, sampling_top_k in decode_plan:
             result = run_one_instance(
                 model,
                 env_cls,
@@ -549,12 +631,16 @@ def run_best_instance(
                 feature_mode,
                 decode_mode,
                 decode_run,
+                sampling_temperature,
+                sampling_top_k,
             )
             total_time += float(result["time_sec"])
             tried_configs.append({
                 "feature_mode": feature_mode,
                 "decode_mode": decode_mode,
                 "decode_run": decode_run,
+                "sampling_temperature": sampling_temperature,
+                "sampling_top_k": sampling_top_k,
                 "cost": result["cost"],
                 "time_sec": result["time_sec"],
             })
@@ -682,6 +768,8 @@ def main() -> None:
             raise ValueError("--instance-glob is required for benchmark mode.")
         cases, dataset_metadata = load_benchmark_cases(args.instance_glob, args.limit)
         feature_modes = parse_feature_modes(args.benchmark_feature_modes)
+    sampling_temperatures = parse_float_list(args.sampling_temperatures)
+    sampling_top_ks = parse_int_list(args.sampling_top_ks)
 
     lkh_reference = read_lkh_reference(args.lkh_reference)
     dataset_type = cases[0]["dataset_type"] if cases else args.mode
@@ -702,6 +790,8 @@ def main() -> None:
             args.augmentation_factor,
             feature_modes,
             args.sampling_runs,
+            sampling_temperatures,
+            sampling_top_ks,
         )
         cost_before_local_search = float(result["cost"])
         local_search_improvement = 0.0
@@ -749,6 +839,8 @@ def main() -> None:
             "feature_mode": result["feature_mode"],
             "decode_mode": result["decode_mode"],
             "decode_run": result["decode_run"],
+            "sampling_temperature": result["sampling_temperature"],
+            "sampling_top_k": result["sampling_top_k"],
             "best_batch_idx": result["best_batch_idx"],
             "best_pomo_idx": result["best_pomo_idx"],
             "is_feasible": result["feasible"],
@@ -806,6 +898,8 @@ def main() -> None:
         "augmentation_factor": args.augmentation_factor,
         "feature_modes": feature_modes,
         "sampling_runs": args.sampling_runs,
+        "sampling_temperatures": sampling_temperatures,
+        "sampling_top_ks": sampling_top_ks,
         "same_priority_ls_passes": args.same_priority_ls_passes,
         "average_cost_before_local_search": stat_or_none(costs_before_local_search, mean),
         "average_local_search_improvement": stat_or_none(local_search_improvements, mean),

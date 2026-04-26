@@ -1,0 +1,11 @@
+instance_id,model_cost,lkh_cost,gap_to_lkh_percent,source_run,feature_mode,decode_mode,decode_run,sampling_temperature,sampling_top_k,best_batch_idx,best_pomo_idx,is_feasible,violation_count,source_path
+kroA100-C-3-1-a,26976.0,22845.0,18.08273145108339,mds_t0.7,mds,sample,1,0.7,0,4,95,True,0,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroA100-C-3-1-a.ctspd
+kroA100-C-5-1-a,25367.0,22589.0,12.298021160741953,mds_t1.0,mds,sample,12,1.0,0,3,2,True,0,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroA100-C-5-1-a.ctspd
+kroB100-C-3-1-a,28024.0,22141.0,26.570615600018066,anchor_t0.7,anchor,greedy,0,1.0,0,1,7,True,0,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroB100-C-3-1-a.ctspd
+kroB100-C-5-1-a,26488.0,23159.0,14.37454121507837,mds_t1.0,mds,sample,11,1.0,0,1,85,True,0,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroB100-C-5-1-a.ctspd
+kroC100-C-3-1-a,24941.0,20910.0,19.277857484457197,mds_t0.7,mds,sample,17,0.7,0,3,53,True,0,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroC100-C-3-1-a.ctspd
+kroC100-C-5-1-a,27460.0,22827.0,20.296140535330967,mds_t0.7,mds,sample,31,0.7,0,5,14,True,0,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroC100-C-5-1-a.ctspd
+kroD100-C-3-1-a,26229.0,21944.0,19.52697776157492,mds_t0.7,mds,greedy,0,1.0,0,3,19,True,0,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroD100-C-3-1-a.ctspd
+kroD100-C-5-1-a,25883.0,25102.0,3.1113058720420685,mds_t0.7,mds,sample,30,0.7,0,1,86,True,0,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroD100-C-5-1-a.ctspd
+kroE100-C-3-1-a,29761.0,22121.0,34.537317481126536,mds_t0.7,mds,greedy,0,1.0,0,4,6,True,0,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroE100-C-3-1-a.ctspd
+kroE100-C-5-1-a,26115.0,23611.0,10.605226377535894,mds_t0.7,mds,sample,27,0.7,0,2,20,True,0,/root/autodl-tmp/CTSPd(SOTA)/INSTANCES/Cluster_large/kroE100-C-5-1-a.ctspd

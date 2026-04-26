@@ -240,6 +240,20 @@ The final six-model thesis outputs produced on 2026-04-26 are:
     `test_results/thesis_benchmark_cluster_large_n100_d1_aug8_sample64_ls20_20260426/evaluations/<model>/`
   - each per-model output includes `test_instances.csv`, `test_summary.json`,
     and 10 saved final `.tour` files.
+- Full learnable model-only inference exploration:
+  `test_results/full_learnable_model_only_best_of_ensemble_20260426`
+  - inference setting:
+    no model-weight changes and no traditional optimization/post-processing;
+    candidates are generated only by the full learnable-bias model with
+    feature-mode and softmax-temperature test-time sampling, then the best
+    generated candidate per instance is selected by the original CTSP-d
+    distance matrix.
+  - supporting completed runs:
+    `test_results/full_learnable_model_only_parallel_ensemble_20260426`,
+    `test_results/full_learnable_model_only_mds_deep_sampling_20260426`, and
+    `test_results/full_learnable_model_only_temperature_sweep_20260426`.
+  - key files:
+    `README.md`, `summary.csv`, `summary.json`, and `best_instances.csv`.
 - Reproducibility check:
   `test_results/reproducibility_check_20260426`
   - `README.md`: human-readable pass/fail report.
@@ -284,6 +298,23 @@ local search on the same 10 instances:
 | True `w/o all bias` | 25787.2 | 13.734386120421016% | 1.0 |
 | `w/o fusion gate` | 26000.9 | 14.592376703089329% | 1.0 |
 | `w/o group embedding` | 24272.4 | 6.88054973950998% | 1.0 |
+
+Full learnable model-only test-time inference exploration on the same external
+instances:
+
+| Protocol | Average cost | Average gap to LKH | Feasible rate |
+|---|---:|---:|---:|
+| Full learnable, standard `anchor,mds` aug8 greedy | 27134.5 | 19.64153639788954% | 1.0 |
+| Full learnable, model-only ensemble | 26574.1 | 17.206078282859504% | 1.0 |
+| Scheduled/fixed, standard `anchor,mds` aug8 greedy | 26742.2 | 17.806783359242594% | 1.0 |
+| `w/o group embedding`, standard `anchor,mds` aug8 greedy | 26507.0 | 16.655800247413705% | 1.0 |
+
+The model-only ensemble changes only the test-time inference protocol for the
+full learnable model. It does not alter model weights and does not use LKH,
+local search, 2-opt, or same-priority swap search. It is useful as a deployment
+strengthening result: full learnable becomes better than the scheduled/fixed
+model under the standard external benchmark protocol, but it still does not
+beat `w/o group embedding` under that standard protocol.
 
 Interpretation caution: the external benchmark is a transparent LKH comparison
 and generalization stress test. These models were trained on the synthetic
@@ -683,6 +714,27 @@ testing.
   while disabling group embedding or the fusion gate at inference time did not
   improve the full checkpoint on the external benchmark: the average gaps were
   `18.1056477089938%` and `20.677089255168337%`, respectively.
+- 2026-04-26: Added model-only test-time sampling controls to
+  `scripts/evaluate_ctspd.py` and the model forward paths:
+  `sampling_temperature`, `sampling_top_k`, plus extra benchmark feature modes
+  `farthest`, `central`, and `meanmax`. These controls are used only for
+  softmax sampling inference and do not change model weights.
+  Completed full learnable-bias model-only inference explorations are saved
+  under:
+  `test_results/full_learnable_model_only_temperature_sweep_20260426`,
+  `test_results/full_learnable_model_only_parallel_ensemble_20260426`,
+  `test_results/full_learnable_model_only_mds_deep_sampling_20260426`, and the
+  consolidated best result
+  `test_results/full_learnable_model_only_best_of_ensemble_20260426`.
+  The consolidated full-only ensemble average cost is `26574.1` with average
+  LKH gap `17.206078282859504%` and feasible rate `1.0`. This improves over
+  the standard full learnable external benchmark result (`27134.5`,
+  `19.64153639788954%`) and slightly beats the scheduled/fixed model under the
+  standard benchmark protocol (`26742.2`, `17.806783359242594%`), but still does
+  not beat `w/o group embedding` under the standard protocol (`26507.0`,
+  `16.655800247413705%`). A later targeted sample512 run was started and then
+  stopped at user request; its partial outputs were discarded and are not
+  committed.
 
 Update this section whenever long-running training or evaluation jobs are
 started, stopped, or completed.

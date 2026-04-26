@@ -26,6 +26,8 @@ SUMMARY_FIELDS = [
     "augmentation_factor",
     "feature_modes",
     "sampling_runs",
+    "sampling_temperatures",
+    "sampling_top_ks",
     "same_priority_ls_passes",
     "average_cost_before_local_search",
     "average_local_search_improvement",

@@ -59,12 +59,13 @@ class CTSPdModel(nn.Module):
             # shape: (batch, pomo, problem)
 
             if self.training or self.model_params['eval_type'] == 'softmax':
+                sample_probs = _apply_sampling_controls(probs, self.model_params, self.training)
                 while True:
-                    selected = probs.reshape(batch_size * pomo_size, -1).multinomial(1) \
+                    selected = sample_probs.reshape(batch_size * pomo_size, -1).multinomial(1) \
                         .squeeze(dim=1).reshape(batch_size, pomo_size)
                     # shape: (batch, pomo)
 
-                    prob = probs[state.BATCH_IDX, state.POMO_IDX, selected] \
+                    prob = sample_probs[state.BATCH_IDX, state.POMO_IDX, selected] \
                         .reshape(batch_size, pomo_size)
                     # shape: (batch, pomo)
 
@@ -113,6 +114,28 @@ def _get_encoding(encoded_nodes, node_index_to_pick):
     # shape: (batch, pomo, embedding)
 
     return picked_nodes
+
+
+def _apply_sampling_controls(probs, model_params, training):
+    if training:
+        return probs
+
+    adjusted = probs
+    temperature = float(model_params.get('sampling_temperature', 1.0))
+    if temperature <= 0:
+        raise ValueError("sampling_temperature must be positive.")
+    if abs(temperature - 1.0) > 1e-9:
+        adjusted = adjusted.clamp_min(1e-12).pow(1.0 / temperature)
+
+    top_k = int(model_params.get('sampling_top_k', 0) or 0)
+    if 0 < top_k < int(adjusted.size(-1)):
+        values, indices = adjusted.topk(top_k, dim=-1)
+        filtered = torch.zeros_like(adjusted)
+        filtered.scatter_(dim=-1, index=indices, src=values)
+        adjusted = filtered
+
+    denom = adjusted.sum(dim=-1, keepdim=True).clamp_min(1e-12)
+    return adjusted / denom
 
 
 def _inverse_softplus(value):
