@@ -1,0 +1,60 @@
+NAME : berlin52-C-5-0-b.8669.tour
+COMMENT : Length = 8669
+COMMENT : Found by LKH-3 [Keld Helsgaun] Tue Jul 30 13:14:05 2024
+TYPE : TOUR
+DIMENSION : 52
+TOUR_SECTION
+1
+49
+32
+22
+23
+20
+50
+29
+16
+46
+44
+34
+35
+36
+39
+40
+37
+38
+48
+24
+5
+15
+6
+25
+4
+43
+33
+51
+11
+52
+14
+13
+47
+26
+27
+28
+12
+10
+9
+8
+41
+19
+45
+3
+17
+18
+31
+21
+30
+42
+7
+2
+-1
+EOF

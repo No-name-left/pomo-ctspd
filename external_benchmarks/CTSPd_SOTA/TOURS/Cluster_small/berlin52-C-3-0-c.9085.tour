@@ -1,0 +1,60 @@
+NAME : berlin52-C-3-0-c.9085.tour
+COMMENT : Length = 9085
+COMMENT : Found by LKH-3 [Keld Helsgaun] Tue Jul 30 13:14:05 2024
+TYPE : TOUR
+DIMENSION : 52
+TOUR_SECTION
+1
+7
+2
+4
+25
+12
+28
+27
+26
+47
+13
+14
+52
+11
+51
+33
+43
+10
+9
+8
+41
+19
+45
+32
+49
+36
+35
+34
+39
+40
+37
+38
+15
+6
+5
+24
+48
+46
+44
+16
+29
+50
+20
+23
+30
+42
+21
+17
+3
+18
+31
+22
+-1
+EOF

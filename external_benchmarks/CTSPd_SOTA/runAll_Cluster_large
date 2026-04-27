@@ -1,0 +1,48 @@
+run_CTSP-d kroA100-C-1-0-a Cluster_large 21282
+run_CTSP-d kroA100-C-3-0-a Cluster_large 24049
+run_CTSP-d kroA100-C-3-1-a Cluster_large 22845
+run_CTSP-d kroA100-C-5-0-a Cluster_large 24745
+run_CTSP-d kroA100-C-5-1-a Cluster_large 22589
+run_CTSP-d kroA100-C-5-3-a Cluster_large 21443
+
+run_CTSP-d kroB100-C-1-0-a Cluster_large 22141
+run_CTSP-d kroB100-C-3-0-a Cluster_large 24887 
+run_CTSP-d kroB100-C-3-1-a Cluster_large 22141
+run_CTSP-d kroB100-C-5-0-a Cluster_large 24794
+run_CTSP-d kroB100-C-5-1-a Cluster_large 23159
+run_CTSP-d kroB100-C-5-3-a Cluster_large 22141
+
+run_CTSP-d kroC100-C-1-0-a Cluster_large 20749
+run_CTSP-d kroC100-C-3-0-a Cluster_large 21340
+run_CTSP-d kroC100-C-3-1-a Cluster_large 20910
+run_CTSP-d kroC100-C-5-0-a Cluster_large 24040
+run_CTSP-d kroC100-C-5-1-a Cluster_large 22827
+run_CTSP-d kroC100-C-5-3-a Cluster_large 21278
+
+run_CTSP-d kroD100-C-1-0-a Cluster_large 21294
+run_CTSP-d kroD100-C-3-0-a Cluster_large 23809
+run_CTSP-d kroD100-C-3-1-a Cluster_large 21944
+run_CTSP-d kroD100-C-5-0-a Cluster_large 28228
+run_CTSP-d kroD100-C-5-1-a Cluster_large 25102
+run_CTSP-d kroD100-C-5-3-a Cluster_large 21744
+
+run_CTSP-d kroE100-C-1-0-a Cluster_large 22068 
+run_CTSP-d kroE100-C-3-0-a Cluster_large 24383
+run_CTSP-d kroE100-C-3-1-a Cluster_large 22121
+run_CTSP-d kroE100-C-5-0-a Cluster_large 26440
+run_CTSP-d kroE100-C-5-1-a Cluster_large 23611
+run_CTSP-d kroE100-C-5-3-a Cluster_large 22455
+
+run_CTSP-d kroA200-C-1-0-a Cluster_large 29368
+run_CTSP-d kroA200-C-3-0-a Cluster_large 29913
+run_CTSP-d kroA200-C-3-1-a Cluster_large 29368
+run_CTSP-d kroA200-C-5-0-a Cluster_large 32224
+run_CTSP-d kroA200-C-5-1-a Cluster_large 31057
+run_CTSP-d kroA200-C-5-3-a Cluster_large 29994
+
+run_CTSP-d kroB200-C-1-0-a Cluster_large 29437
+run_CTSP-d kroB200-C-3-0-a Cluster_large 30989
+run_CTSP-d kroB200-C-3-1-a Cluster_large 30442
+run_CTSP-d kroB200-C-5-0-a Cluster_large 37909
+run_CTSP-d kroB200-C-5-1-a Cluster_large 33218
+run_CTSP-d kroB200-C-5-3-a Cluster_large 30017

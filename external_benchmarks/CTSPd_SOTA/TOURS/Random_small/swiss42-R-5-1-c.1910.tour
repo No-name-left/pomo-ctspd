@@ -1,0 +1,50 @@
+NAME : swiss42-R-5-1-c.1910.tour
+COMMENT : Length = 1910
+COMMENT : Found by LKH-3 [Keld Helsgaun] Tue Jul 30 13:14:22 2024
+TYPE : TOUR
+DIMENSION : 42
+TOUR_SECTION
+1
+31
+4
+5
+38
+16
+14
+6
+19
+13
+26
+24
+41
+25
+22
+40
+10
+9
+30
+29
+3
+28
+33
+21
+2
+7
+20
+15
+17
+8
+18
+32
+37
+36
+34
+35
+39
+23
+42
+11
+12
+27
+-1
+EOF

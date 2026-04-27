@@ -1,0 +1,51 @@
+#!/bin/bash
+
+if [ -z "$2" ]; then
+    echo w"./run_CTSP_D name class [ optimum ]" 
+    exit
+fi
+
+name=$1
+class=$2
+optimum=$3
+problem=INSTANCES/$class/$name.ctspd
+/bin/mkdir -p TOURS
+/bin/mkdir -p TOURS/$class
+
+echo "PROBLEM_FILE = $problem" > par
+echo "SPECIAL" >> par
+echo "MAX_CANDIDATES = 6" >> par
+# echo "TOUR_FILE = TOURS/$class/$name.$.tour" >> par
+if [ $optimum ]; then
+    echo "OPTIMUM = $optimum" >> par
+fi
+echo "TRACE_LEVEL = 0" >> par
+echo "RUNS = 1" >> par
+echo "SEED = 0" >> par
+echo "MAX_TRIALS = 10000" >> par
+
+if true; then
+    for FILE in `ls TOURS/$class/$name.*.tour` ;
+    do
+        echo "INITIAL_TOUR_FILE = $FILE" >> par
+        break
+    done
+fi
+
+if false; then
+    max_merge_tours=10
+    merge_tours=0
+    for FILE in `ls TOURS/$class/$name.*.tour` ;
+    do
+        let "merge_tours++"
+        if [ $merge_tours -gt $max_merge_tours ]; then
+            break
+        fi
+        echo "MERGE_TOUR_FILE = $FILE" >> par
+    done
+    echo "MAX_CANDIDATES = 0" >> par
+fi
+
+../LKH par
+/bin/rm par
+
