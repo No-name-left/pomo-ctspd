@@ -11,12 +11,12 @@ Training curves use rolling-mean smoothing with window size `5`. This smoothing 
 Model colors:
 
 - `LKH`: `#4D4D4D`
-- `POMO baseline`: `#999999`
-- `Full model`: `#0072B2`
-- `scheduled bias`: `#56B4E9`
-- `w/o all bias`: `#D55E00`
-- `w/o fusion gate`: `#009E73`
-- `w/o group emb.`: `#CC79A7`
+- `POMO baseline`: `#9A9A9A`
+- `Full model`: `#2F6DA3`
+- `scheduled bias`: `#6FA8DC`
+- `w/o all bias`: `#C97A2B`
+- `w/o fusion gate`: `#5AA382`
+- `w/o group emb.`: `#B788A9`
 
 ## Generated Figures
 
@@ -25,6 +25,7 @@ Model colors:
 - Purpose: 展示 LKH 与各神经模型的平均路径成本。
 - Recommended placement: 主实验结果
 - Data source: summary.csv
+- Color semantics: 按模型着色。
 - Suitable for main text: 是
 - Files: `average_cost_with_lkh_bar.pdf`, `average_cost_with_lkh_bar.png`
 - 中文图注：各方法在 1000 个 n=100, g=8, d=1 合成测试实例上的平均路径成本；误差线为 95% 置信区间，纵轴为便于比较进行了截断。
@@ -35,6 +36,7 @@ Model colors:
 - Purpose: 展示各模型相对 LKH 的平均 gap。
 - Recommended placement: 主实验结果
 - Data source: summary.csv
+- Color semantics: 按模型着色。
 - Suitable for main text: 是
 - Files: `gap_to_lkh_bar.pdf`, `gap_to_lkh_bar.png`
 - 中文图注：各方法相对 LOW_FIRST-patched LKH 的平均 gap；Full model 是 gap 最小的神经模型。
@@ -45,6 +47,7 @@ Model colors:
 - Purpose: 展示每个模型在逐实例层面的 gap 分布稳定性。
 - Recommended placement: 主实验结果
 - Data source: paper_artifacts/per_instance_costs.csv
+- Color semantics: 按模型着色。
 - Suitable for main text: 是
 - Files: `per_instance_gap_to_lkh_boxplot.pdf`, `per_instance_gap_to_lkh_boxplot.png`
 - 中文图注：各神经模型逐实例相对 LKH 的 gap 分布；箱体显示四分位数，菱形表示均值，离群点使用浅色小点显示。
@@ -55,6 +58,7 @@ Model colors:
 - Purpose: 展示模型之间逐实例两两比较的胜率。
 - Recommended placement: 消融分析
 - Data source: paper_artifacts/pairwise_win_percent.csv
+- Color semantics: 色块表示 pairwise win rate，不表示模型；坐标轴条目表示模型。
 - Suitable for main text: 是
 - Files: `pairwise_win_heatmap.pdf`, `pairwise_win_heatmap.png`
 - 中文图注：两两胜率矩阵，行方法相对列方法在同一测试实例上取得更低 cost 的比例；50% 为中点。
@@ -65,6 +69,7 @@ Model colors:
 - Purpose: 展示 LKH 与神经模型的平均单实例推理时间。
 - Recommended placement: 效率分析
 - Data source: summary.csv
+- Color semantics: 按模型着色。
 - Suitable for main text: 是
 - Files: `time_per_instance_bar_log.pdf`, `time_per_instance_bar_log.png`
 - 中文图注：各方法平均单实例推理时间，纵轴为对数尺度；LKH 解质量更强但耗时约为 Full model 的百倍量级。
@@ -75,6 +80,7 @@ Model colors:
 - Purpose: 展示主要模型训练 score 曲线。
 - Recommended placement: 训练过程分析
 - Data source: training_metrics.csv files under model result directories
+- Color semantics: 按模型着色。
 - Suitable for main text: 可选
 - Files: `training_score_curves.pdf`, `training_score_curves.png`
 - 中文图注：主要模型训练 score 曲线，使用 rolling mean 平滑，窗口大小为 5；为避免主图杂乱，仅展示 baseline、Full model、scheduled bias 和 w/o group emb.
@@ -85,6 +91,7 @@ Model colors:
 - Purpose: 展示全部神经模型训练 score 曲线。
 - Recommended placement: 附录
 - Data source: training_metrics.csv files under model result directories
+- Color semantics: 按模型着色。
 - Suitable for main text: 否，建议附录
 - Files: `training_score_curves_appendix_all.pdf`, `training_score_curves_appendix_all.png`
 - 中文图注：全部神经模型训练 score 曲线，使用 rolling mean 平滑，窗口大小为 5。
@@ -95,9 +102,10 @@ Model colors:
 - Purpose: 展示解质量与推理时间之间的折中关系。
 - Recommended placement: 效率分析
 - Data source: summary.csv
+- Color semantics: 点颜色表示模型；图例按固定 MODEL_ORDER 排列。
 - Suitable for main text: 是
 - Files: `quality_time_tradeoff_scatter.pdf`, `quality_time_tradeoff_scatter.png`
-- 中文图注：解质量与推理时间折中图；LKH 的 gap 为 0 但耗时显著更高，Full model 在神经模型中取得较低 gap 与较高速度的折中。
+- 中文图注：解质量与推理时间折中图；新版使用图例替代密集点旁标签，避免标签重叠。LKH 的 gap 为 0 但耗时显著更高，Full model 在神经模型中取得较低 gap 与较高速度的折中，w/o group emb. 是较弱消融。
 - English caption: Quality-time tradeoff: average gap to LKH versus inference time per instance.
 
 ### `paired_gap_delta_to_baseline.pdf/png`
@@ -105,6 +113,7 @@ Model colors:
 - Purpose: 展示每个模型相对 baseline 的逐实例 gap 改变量。
 - Recommended placement: 消融分析
 - Data source: paper_artifacts/per_instance_costs.csv
+- Color semantics: 按模型着色。
 - Suitable for main text: 是
 - Files: `paired_gap_delta_to_baseline.pdf`, `paired_gap_delta_to_baseline.png`
 - 中文图注：逐实例相对 baseline 的 gap 差值分布；数值小于 0 表示该模型在对应实例上优于 baseline。
@@ -115,48 +124,55 @@ Model colors:
 - Purpose: 直接展示各消融模型相对 Full model 的平均 gap 变化。
 - Recommended placement: 消融分析
 - Data source: summary.csv
+- Color semantics: 按模型着色。
 - Suitable for main text: 是
 - Files: `ablation_summary_delta.pdf`, `ablation_summary_delta.png`
 - 中文图注：各消融模型相对 Full model 的平均 gap 增量；正值表示去掉或替换对应设计后性能变差。
 - English caption: Average gap delta of ablation variants relative to the Full model.
-
-### `feasibility_rate_bar.pdf/png`
-
-- Purpose: 展示各方法生成解的 CTSP-d 可行率。
-- Recommended placement: 附录
-- Data source: summary.csv and evaluation test_instances.csv
-- Suitable for main text: 否，建议附录
-- Files: `feasibility_rate_bar.pdf`, `feasibility_rate_bar.png`
-- 中文图注：各方法在主实验测试集上的可行率；当前所有方法均为 100%，说明主结果差异主要来自路径成本而非约束失败。
-- English caption: Feasibility rate on the main synthetic test set.
 
 ### `route_case_study_panels.pdf/png`
 
 - Purpose: 展示同一代表性实例上不同模型路线形态的差异。
 - Recommended placement: 附录或案例分析
 - Data source: Fixed synthetic dataset, per_instance_costs.csv, LKH normalized tour, and checkpoint re-inference for neural routes
+- Color semantics: 节点颜色表示 priority group；路径线条颜色表示模型。
 - Suitable for main text: 可选，正文空间允许时可放
 - Files: `route_case_study_panels.pdf`, `route_case_study_panels.png`
-- 中文图注：代表性实例 synthetic_000543 的路线案例图。节点颜色表示 priority group，线颜色表示模型，星号为路线起点。
+- 中文图注：代表性实例 synthetic_000543 的路线案例图。节点颜色表示 priority group，线颜色表示模型，星号为路线起点。该实例中 Full model 的 gap 明显低于 baseline，而 w/o group emb. 的 cost/gap 较差，可作为结构消融的直观补充。
 - English caption: Route case study for one representative instance; node colors indicate priority groups.
 
-### `route_case_group_sequence.pdf/png`
+### `route_case_group_sequence_appendix.pdf/png`
 
-- Purpose: 展示同一实例中不同模型访问 priority group 的顺序差异。
-- Recommended placement: 附录或案例分析
+- Purpose: 展示同一实例中不同模型访问 priority group 的完整步序，仅作为路线图的辅助材料。
+- Recommended placement: 附录
 - Data source: Fixed synthetic dataset, LKH normalized tour, and checkpoint re-inference for neural routes
-- Suitable for main text: 可选，正文空间允许时可放
-- Files: `route_case_group_sequence.pdf`, `route_case_group_sequence.png`
-- 中文图注：代表性实例 synthetic_000543 的 priority group 访问序列；每一行是一个模型，每一列是访问步序。
+- Color semantics: 色块表示 priority group，不表示模型。
+- Suitable for main text: 否，附录辅助理解
+- Files: `route_case_group_sequence_appendix.pdf`, `route_case_group_sequence_appendix.png`
+- 中文图注：代表性实例 synthetic_000543 的 priority group 访问序列；每一行是一个模型，每一列是访问步序。该图保留为附录辅助理解，不建议作为主文核心图。
 - English caption: Priority-group visit sequence for the route case study.
 
 ## Skipped or Not Generated
 
+- feasibility_rate_bar deleted: all compared methods achieved 100% feasibility on the 1000-instance main test set, so a separate main-text figure adds little information.
+- Removed stale duplicate figure files: feasibility_rate_bar.pdf, feasibility_rate_bar.png, route_case_group_sequence.pdf, route_case_group_sequence.png.
 - `generalization_or_sensitivity_curves` not generated: the current committed main experiment has one controlled setting only (`n=100`, `num_groups=8`, `d=1`) and does not contain comparable LKH-backed sweeps over `n`, `d`, or `num_groups`.
-- `violation_count_boxplot` not generated separately: all methods have feasible rate 100% and violation count 0 in the available main-result summaries; `feasibility_rate_bar` records the constraint result more compactly.
+- `violation_count_boxplot` not generated separately: all methods have feasible rate 100% and violation count 0 in the available main-result summaries.
+
+## Downgraded or Deleted Figures
+
+- `feasibility_rate_bar.pdf/png` was deleted from the current figure set. All compared methods achieved 100% feasibility on the test set, so no separate main-text figure is necessary.
+- `route_case_group_sequence.pdf/png` was renamed to `route_case_group_sequence_appendix.pdf/png` and downgraded to appendix. The 100-step strip is technically correct but has a higher interpretation cost than the route-panel case study.
+- `training_score_curves.pdf/png` is kept as optional/appendix-style evidence rather than a main result figure because it supports training sanity rather than the main quality-efficiency claim.
+
+## Main-text Recommendation
+
+- Strong main-text candidates: `average_cost_with_lkh_bar`, `gap_to_lkh_bar`, `per_instance_gap_to_lkh_boxplot`, `pairwise_win_heatmap`, `time_per_instance_bar_log`, `quality_time_tradeoff_scatter`, `route_case_study_panels`, and either `paired_gap_delta_to_baseline` or `ablation_summary_delta` depending on available space.
+- Appendix or optional candidates: `training_score_curves`, `training_score_curves_appendix_all`, and `route_case_group_sequence_appendix`.
 
 ## Notes
 
 - Existing six figure names were reused and overwritten with the new style, so old duplicate versions are not kept.
+- `quality_time_tradeoff_scatter` now uses a right-side legend instead of direct labels beside every point, resolving the label-overlap issue.
 - Route case-study neural tours, when present, are derived by deterministic checkpoint re-inference on a single selected synthetic instance with 8-fold augmentation. This does not modify the original experiment outputs.
 - PDF files should be used for thesis insertion; PNG files are previews.

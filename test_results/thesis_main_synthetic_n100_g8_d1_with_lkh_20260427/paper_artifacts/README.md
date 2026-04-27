@@ -25,6 +25,5 @@ Generated figures:
 - `quality_time_tradeoff_scatter.pdf/png`: 展示解质量与推理时间之间的折中关系。
 - `paired_gap_delta_to_baseline.pdf/png`: 展示每个模型相对 baseline 的逐实例 gap 改变量。
 - `ablation_summary_delta.pdf/png`: 直接展示各消融模型相对 Full model 的平均 gap 变化。
-- `feasibility_rate_bar.pdf/png`: 展示各方法生成解的 CTSP-d 可行率。
 - `route_case_study_panels.pdf/png`: 展示同一代表性实例上不同模型路线形态的差异。
-- `route_case_group_sequence.pdf/png`: 展示同一实例中不同模型访问 priority group 的顺序差异。
+- `route_case_group_sequence_appendix.pdf/png`: 展示同一实例中不同模型访问 priority group 的完整步序，仅作为路线图的辅助材料。

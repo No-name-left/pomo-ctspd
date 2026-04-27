@@ -45,23 +45,23 @@ KEY_TO_LABEL = {value: key for key, value in MODEL_KEYS.items()}
 
 MODEL_COLORS = {
     "LKH": "#4D4D4D",
-    "POMO baseline": "#999999",
-    "Full model": "#0072B2",
-    "scheduled bias": "#56B4E9",
-    "w/o all bias": "#D55E00",
-    "w/o fusion gate": "#009E73",
-    "w/o group emb.": "#CC79A7",
+    "POMO baseline": "#9A9A9A",
+    "Full model": "#2F6DA3",
+    "scheduled bias": "#6FA8DC",
+    "w/o all bias": "#C97A2B",
+    "w/o fusion gate": "#5AA382",
+    "w/o group emb.": "#B788A9",
 }
 
 GROUP_COLORS = [
-    "#4D4D4D",
-    "#0072B2",
-    "#56B4E9",
-    "#009E73",
-    "#D55E00",
-    "#CC79A7",
-    "#8C564B",
-    "#7F7F7F",
+    "#5E5E5E",
+    "#8AA6C1",
+    "#9DBE8F",
+    "#D1A36F",
+    "#B78FA9",
+    "#8FB8B0",
+    "#B6A174",
+    "#A7A7A7",
 ]
 
 NEURAL_ROUTE_MODELS = [
@@ -136,9 +136,8 @@ PLOT_STEMS = [
     "quality_time_tradeoff_scatter",
     "paired_gap_delta_to_baseline",
     "ablation_summary_delta",
-    "feasibility_rate_bar",
     "route_case_study_panels",
-    "route_case_group_sequence",
+    "route_case_group_sequence_appendix",
 ]
 
 
@@ -151,6 +150,7 @@ class FigureRecord:
     main_text: str
     caption_cn: str
     caption_en: str
+    color_semantics: str = "按模型着色。"
 
 
 def parse_args() -> argparse.Namespace:
@@ -511,6 +511,7 @@ def plot_pairwise_heatmap(out_dir: Path) -> FigureRecord:
         "是",
         "两两胜率矩阵，行方法相对列方法在同一测试实例上取得更低 cost 的比例；50% 为中点。",
         "Pairwise win-rate matrix; each cell is the percentage of instances where the row method beats the column method.",
+        "色块表示 pairwise win rate，不表示模型；坐标轴条目表示模型。",
     )
 
 
@@ -643,30 +644,47 @@ def plot_quality_time_tradeoff(summary_rows: list[dict[str, Any]], out_dir: Path
     times = [to_float(row["time_per_instance_sec"]) for row in summary_rows]
     gaps = [to_float(row["average_gap_to_lkh_percent"]) for row in summary_rows]
 
-    fig, ax = plt.subplots(figsize=(6.7, 4.4))
+    marker_map = {
+        "LKH": "s",
+        "Full model": "D",
+        "w/o group emb.": "^",
+    }
+    fig, ax = plt.subplots(figsize=(7.4, 4.5))
     for label, x, y in zip(labels, times, gaps):
-        size = 72 if label == "Full model" else 52
+        size = 82 if label == "Full model" else 58
+        marker = marker_map.get(label, "o")
         ax.scatter(
             x,
             y,
             s=size,
+            marker=marker,
             color=MODEL_COLORS[label],
             edgecolor="#333333",
             linewidth=0.6,
             alpha=0.9,
             zorder=3,
+            label=label,
         )
-        xytext = (6, 5)
-        if label == "LKH":
-            xytext = (-6, 8)
-        elif label in {"POMO baseline", "scheduled bias"}:
-            xytext = (6, -12)
-        ax.annotate(label, (x, y), textcoords="offset points", xytext=xytext, fontsize=8.6)
     ax.set_xscale("log")
     ax.set_xlabel("Time per instance (s, log scale)")
     ax.set_ylabel("Gap to LKH (%)")
     ax.set_title("Quality-Time Tradeoff")
     ax.axhline(0.0, color="#333333", linewidth=0.7)
+    ax.legend(
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        borderaxespad=0.0,
+        title="Method",
+        title_fontsize=9.5,
+    )
+    ax.text(
+        0.03,
+        0.92,
+        "Lower-left is better",
+        transform=ax.transAxes,
+        fontsize=8.8,
+        color="#666666",
+    )
     style_axes(ax)
     save_figure(fig, out_dir, "quality_time_tradeoff_scatter")
     return FigureRecord(
@@ -675,8 +693,9 @@ def plot_quality_time_tradeoff(summary_rows: list[dict[str, Any]], out_dir: Path
         "效率分析",
         "summary.csv",
         "是",
-        "解质量与推理时间折中图；LKH 的 gap 为 0 但耗时显著更高，Full model 在神经模型中取得较低 gap 与较高速度的折中。",
+        "解质量与推理时间折中图；新版使用图例替代密集点旁标签，避免标签重叠。LKH 的 gap 为 0 但耗时显著更高，Full model 在神经模型中取得较低 gap 与较高速度的折中，w/o group emb. 是较弱消融。",
         "Quality-time tradeoff: average gap to LKH versus inference time per instance.",
+        "点颜色表示模型；图例按固定 MODEL_ORDER 排列。",
     )
 
 
@@ -781,34 +800,15 @@ def plot_ablation_delta(summary_rows: list[dict[str, Any]], out_dir: Path) -> Fi
     )
 
 
-def plot_feasibility(summary_rows: list[dict[str, Any]], out_dir: Path) -> FigureRecord:
-    labels = [row["model_label"] for row in summary_rows]
+def feasibility_note(summary_rows: list[dict[str, Any]]) -> str:
     rates = [100.0 * to_float(row["feasible_rate"]) for row in summary_rows]
-    x = np.arange(len(labels))
-    fig, ax = plt.subplots(figsize=(8.0, 4.0))
-    bars = ax.bar(
-        x,
-        rates,
-        color=model_colors(labels),
-        edgecolor="#333333",
-        linewidth=0.6,
-    )
-    ax.set_ylim(0, 105)
-    ax.set_ylabel("Feasible rate (%)")
-    ax.set_title("Feasibility Rate")
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, rotation=25, ha="right")
-    add_bar_labels(ax, bars, rates, "{:.1f}%")
-    style_axes(ax)
-    save_figure(fig, out_dir, "feasibility_rate_bar")
-    return FigureRecord(
-        "feasibility_rate_bar",
-        "展示各方法生成解的 CTSP-d 可行率。",
-        "附录",
-        "summary.csv and evaluation test_instances.csv",
-        "否，建议附录",
-        "各方法在主实验测试集上的可行率；当前所有方法均为 100%，说明主结果差异主要来自路径成本而非约束失败。",
-        "Feasibility rate on the main synthetic test set.",
+    if rates and all(abs(rate - 100.0) < 1e-9 for rate in rates):
+        return (
+            "feasibility_rate_bar deleted: all compared methods achieved 100% feasibility "
+            "on the 1000-instance main test set, so a separate main-text figure adds little information."
+        )
+    return (
+        "feasibility_rate_bar not generated: feasibility data are not uniformly available in the current summary."
     )
 
 
@@ -1000,6 +1000,12 @@ def enrich_route_metadata(
         violations, feasible = calc_feasibility_np(data["tour"], priorities, relaxation_d)
         data["route_violation_count"] = violations
         data["route_feasible"] = feasible
+        sequence = np.asarray([priorities[node] for node in data["tour"]], dtype=int)
+        data["priority_group_switches"] = int(np.sum(sequence[1:] != sequence[:-1]))
+        route_xy = coords[data["tour"] + [data["tour"][0]]]
+        edge_lengths = np.linalg.norm(route_xy[1:] - route_xy[:-1], axis=1)
+        data["mean_edge_length"] = float(edge_lengths.mean())
+        data["max_edge_length"] = float(edge_lengths.max())
 
 
 def plot_route_panels(
@@ -1012,7 +1018,7 @@ def plot_route_panels(
     labels = [label for label in MODEL_ORDER if label in routes]
     n_cols = 4
     n_rows = math.ceil(len(labels) / n_cols)
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12.2, 3.4 * n_rows), squeeze=False)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12.2, 3.35 * n_rows), squeeze=False)
     x_min, y_min = coords.min(axis=0)
     x_max, y_max = coords.max(axis=0)
     pad = 0.035
@@ -1027,8 +1033,8 @@ def plot_route_panels(
             route_xy[:, 0],
             route_xy[:, 1],
             color=MODEL_COLORS[label],
-            linewidth=0.8,
-            alpha=0.72,
+            linewidth=0.65 if label != "Full model" else 0.85,
+            alpha=0.66 if label != "Full model" else 0.78,
             zorder=2,
         )
         for group in group_values:
@@ -1036,11 +1042,11 @@ def plot_route_panels(
             ax.scatter(
                 coords[mask, 0],
                 coords[mask, 1],
-                s=13,
+                s=10,
                 color=group_to_color[group],
                 edgecolor="white",
-                linewidth=0.25,
-                alpha=0.92,
+                linewidth=0.2,
+                alpha=0.9,
                 zorder=3,
             )
         start = tour[0]
@@ -1048,7 +1054,7 @@ def plot_route_panels(
             [coords[start, 0]],
             [coords[start, 1]],
             marker="*",
-            s=80,
+            s=72,
             color="#FFFFFF",
             edgecolor="#111111",
             linewidth=0.8,
@@ -1089,8 +1095,9 @@ def plot_route_panels(
         "附录或案例分析",
         "Fixed synthetic dataset, per_instance_costs.csv, LKH normalized tour, and checkpoint re-inference for neural routes",
         "可选，正文空间允许时可放",
-        f"代表性实例 {instance_id} 的路线案例图。节点颜色表示 priority group，线颜色表示模型，星号为路线起点。",
+        f"代表性实例 {instance_id} 的路线案例图。节点颜色表示 priority group，线颜色表示模型，星号为路线起点。该实例中 Full model 的 gap 明显低于 baseline，而 w/o group emb. 的 cost/gap 较差，可作为结构消融的直观补充。",
         "Route case study for one representative instance; node colors indicate priority groups.",
+        "节点颜色表示 priority group；路径线条颜色表示模型。",
     )
 
 
@@ -1112,7 +1119,7 @@ def plot_group_sequence(
     ax.set_yticks(np.arange(len(labels)))
     ax.set_yticklabels(labels)
     ax.set_xlabel("Step / order")
-    ax.set_title(f"Priority Group Visit Sequence: {instance_id}")
+    ax.set_title(f"Priority Group Visit Sequence (Appendix): {instance_id}")
     n_steps = sequences.shape[1]
     ticks = sorted(set([0, 24, 49, 74, n_steps - 1]))
     ax.set_xticks(ticks)
@@ -1120,15 +1127,16 @@ def plot_group_sequence(
     cbar = fig.colorbar(im, ax=ax, fraction=0.035, pad=0.025, ticks=unique_groups)
     cbar.set_label("Priority group")
     style_axes(ax, grid_axis="")
-    save_figure(fig, out_dir, "route_case_group_sequence")
+    save_figure(fig, out_dir, "route_case_group_sequence_appendix")
     return FigureRecord(
-        "route_case_group_sequence",
-        "展示同一实例中不同模型访问 priority group 的顺序差异。",
-        "附录或案例分析",
+        "route_case_group_sequence_appendix",
+        "展示同一实例中不同模型访问 priority group 的完整步序，仅作为路线图的辅助材料。",
+        "附录",
         "Fixed synthetic dataset, LKH normalized tour, and checkpoint re-inference for neural routes",
-        "可选，正文空间允许时可放",
-        f"代表性实例 {instance_id} 的 priority group 访问序列；每一行是一个模型，每一列是访问步序。",
+        "否，附录辅助理解",
+        f"代表性实例 {instance_id} 的 priority group 访问序列；每一行是一个模型，每一列是访问步序。该图保留为附录辅助理解，不建议作为主文核心图。",
         "Priority-group visit sequence for the route case study.",
+        "色块表示 priority group，不表示模型。",
     )
 
 
@@ -1186,7 +1194,7 @@ def build_route_case_study(
         print(f"saved {out_dir / 'route_case_study_summary.json'}")
         return records, missing_notes
     except Exception as exc:
-        note = f"route_case_study_panels / route_case_group_sequence 未生成：{exc}"
+        note = f"route_case_study_panels / route_case_group_sequence_appendix 未生成：{exc}"
         warnings.warn(note)
         missing_notes.append(note)
         return [], missing_notes
@@ -1261,6 +1269,7 @@ def write_figure_handoff(
                 f"- Purpose: {record.purpose}",
                 f"- Recommended placement: {record.placement}",
                 f"- Data source: {record.source}",
+                f"- Color semantics: {record.color_semantics}",
                 f"- Suitable for main text: {record.main_text}",
                 f"- Files: `{pdf.name}`, `{png.name}`",
                 f"- 中文图注：{record.caption_cn}",
@@ -1274,11 +1283,23 @@ def write_figure_handoff(
     lines.extend(
         [
             "- `generalization_or_sensitivity_curves` not generated: the current committed main experiment has one controlled setting only (`n=100`, `num_groups=8`, `d=1`) and does not contain comparable LKH-backed sweeps over `n`, `d`, or `num_groups`.",
-            "- `violation_count_boxplot` not generated separately: all methods have feasible rate 100% and violation count 0 in the available main-result summaries; `feasibility_rate_bar` records the constraint result more compactly.",
+            "- `violation_count_boxplot` not generated separately: all methods have feasible rate 100% and violation count 0 in the available main-result summaries.",
+            "",
+            "## Downgraded or Deleted Figures",
+            "",
+            "- `feasibility_rate_bar.pdf/png` was deleted from the current figure set. All compared methods achieved 100% feasibility on the test set, so no separate main-text figure is necessary.",
+            "- `route_case_group_sequence.pdf/png` was renamed to `route_case_group_sequence_appendix.pdf/png` and downgraded to appendix. The 100-step strip is technically correct but has a higher interpretation cost than the route-panel case study.",
+            "- `training_score_curves.pdf/png` is kept as optional/appendix-style evidence rather than a main result figure because it supports training sanity rather than the main quality-efficiency claim.",
+            "",
+            "## Main-text Recommendation",
+            "",
+            "- Strong main-text candidates: `average_cost_with_lkh_bar`, `gap_to_lkh_bar`, `per_instance_gap_to_lkh_boxplot`, `pairwise_win_heatmap`, `time_per_instance_bar_log`, `quality_time_tradeoff_scatter`, `route_case_study_panels`, and either `paired_gap_delta_to_baseline` or `ablation_summary_delta` depending on available space.",
+            "- Appendix or optional candidates: `training_score_curves`, `training_score_curves_appendix_all`, and `route_case_group_sequence_appendix`.",
             "",
             "## Notes",
             "",
             "- Existing six figure names were reused and overwritten with the new style, so old duplicate versions are not kept.",
+            "- `quality_time_tradeoff_scatter` now uses a right-side legend instead of direct labels beside every point, resolving the label-overlap issue.",
             "- Route case-study neural tours, when present, are derived by deterministic checkpoint re-inference on a single selected synthetic instance with 8-fold augmentation. This does not modify the original experiment outputs.",
             "- PDF files should be used for thesis insertion; PNG files are previews.",
             "",
@@ -1371,10 +1392,10 @@ def main() -> None:
     records.append(plot_quality_time_tradeoff(summary_rows, out_dir))
     records.append(plot_paired_delta_to_baseline(per_instance_rows, out_dir))
     records.append(plot_ablation_delta(summary_rows, out_dir))
-    records.append(plot_feasibility(summary_rows, out_dir))
+    missing_notes.append(feasibility_note(summary_rows))
 
     if args.no_route:
-        missing_notes.append("route_case_study_panels / route_case_group_sequence skipped by --no-route.")
+        missing_notes.append("route_case_study_panels / route_case_group_sequence_appendix skipped by --no-route.")
     else:
         route_records, route_missing = build_route_case_study(
             result_dir,
