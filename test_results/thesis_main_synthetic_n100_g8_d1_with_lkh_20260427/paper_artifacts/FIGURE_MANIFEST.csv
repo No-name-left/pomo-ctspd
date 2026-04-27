@@ -1,0 +1,27 @@
+file,stem,format,purpose,placement,source,main_text
+average_cost_with_lkh_bar.pdf,average_cost_with_lkh_bar,pdf,展示 LKH 与各神经模型的平均路径成本。,主实验结果,summary.csv,是
+average_cost_with_lkh_bar.png,average_cost_with_lkh_bar,png,展示 LKH 与各神经模型的平均路径成本。,主实验结果,summary.csv,是
+gap_to_lkh_bar.pdf,gap_to_lkh_bar,pdf,展示各模型相对 LKH 的平均 gap。,主实验结果,summary.csv,是
+gap_to_lkh_bar.png,gap_to_lkh_bar,png,展示各模型相对 LKH 的平均 gap。,主实验结果,summary.csv,是
+per_instance_gap_to_lkh_boxplot.pdf,per_instance_gap_to_lkh_boxplot,pdf,展示每个模型在逐实例层面的 gap 分布稳定性。,主实验结果,paper_artifacts/per_instance_costs.csv,是
+per_instance_gap_to_lkh_boxplot.png,per_instance_gap_to_lkh_boxplot,png,展示每个模型在逐实例层面的 gap 分布稳定性。,主实验结果,paper_artifacts/per_instance_costs.csv,是
+pairwise_win_heatmap.pdf,pairwise_win_heatmap,pdf,展示模型之间逐实例两两比较的胜率。,消融分析,paper_artifacts/pairwise_win_percent.csv,是
+pairwise_win_heatmap.png,pairwise_win_heatmap,png,展示模型之间逐实例两两比较的胜率。,消融分析,paper_artifacts/pairwise_win_percent.csv,是
+time_per_instance_bar_log.pdf,time_per_instance_bar_log,pdf,展示 LKH 与神经模型的平均单实例推理时间。,效率分析,summary.csv,是
+time_per_instance_bar_log.png,time_per_instance_bar_log,png,展示 LKH 与神经模型的平均单实例推理时间。,效率分析,summary.csv,是
+training_score_curves.pdf,training_score_curves,pdf,展示主要模型训练 score 曲线。,训练过程分析,training_metrics.csv files under model result directories,可选
+training_score_curves.png,training_score_curves,png,展示主要模型训练 score 曲线。,训练过程分析,training_metrics.csv files under model result directories,可选
+training_score_curves_appendix_all.pdf,training_score_curves_appendix_all,pdf,展示全部神经模型训练 score 曲线。,附录,training_metrics.csv files under model result directories,否，建议附录
+training_score_curves_appendix_all.png,training_score_curves_appendix_all,png,展示全部神经模型训练 score 曲线。,附录,training_metrics.csv files under model result directories,否，建议附录
+quality_time_tradeoff_scatter.pdf,quality_time_tradeoff_scatter,pdf,展示解质量与推理时间之间的折中关系。,效率分析,summary.csv,是
+quality_time_tradeoff_scatter.png,quality_time_tradeoff_scatter,png,展示解质量与推理时间之间的折中关系。,效率分析,summary.csv,是
+paired_gap_delta_to_baseline.pdf,paired_gap_delta_to_baseline,pdf,展示每个模型相对 baseline 的逐实例 gap 改变量。,消融分析,paper_artifacts/per_instance_costs.csv,是
+paired_gap_delta_to_baseline.png,paired_gap_delta_to_baseline,png,展示每个模型相对 baseline 的逐实例 gap 改变量。,消融分析,paper_artifacts/per_instance_costs.csv,是
+ablation_summary_delta.pdf,ablation_summary_delta,pdf,直接展示各消融模型相对 Full model 的平均 gap 变化。,消融分析,summary.csv,是
+ablation_summary_delta.png,ablation_summary_delta,png,直接展示各消融模型相对 Full model 的平均 gap 变化。,消融分析,summary.csv,是
+feasibility_rate_bar.pdf,feasibility_rate_bar,pdf,展示各方法生成解的 CTSP-d 可行率。,附录,summary.csv and evaluation test_instances.csv,否，建议附录
+feasibility_rate_bar.png,feasibility_rate_bar,png,展示各方法生成解的 CTSP-d 可行率。,附录,summary.csv and evaluation test_instances.csv,否，建议附录
+route_case_study_panels.pdf,route_case_study_panels,pdf,展示同一代表性实例上不同模型路线形态的差异。,附录或案例分析,"Fixed synthetic dataset, per_instance_costs.csv, LKH normalized tour, and checkpoint re-inference for neural routes",可选，正文空间允许时可放
+route_case_study_panels.png,route_case_study_panels,png,展示同一代表性实例上不同模型路线形态的差异。,附录或案例分析,"Fixed synthetic dataset, per_instance_costs.csv, LKH normalized tour, and checkpoint re-inference for neural routes",可选，正文空间允许时可放
+route_case_group_sequence.pdf,route_case_group_sequence,pdf,展示同一实例中不同模型访问 priority group 的顺序差异。,附录或案例分析,"Fixed synthetic dataset, LKH normalized tour, and checkpoint re-inference for neural routes",可选，正文空间允许时可放
+route_case_group_sequence.png,route_case_group_sequence,png,展示同一实例中不同模型访问 priority group 的顺序差异。,附录或案例分析,"Fixed synthetic dataset, LKH normalized tour, and checkpoint re-inference for neural routes",可选，正文空间允许时可放

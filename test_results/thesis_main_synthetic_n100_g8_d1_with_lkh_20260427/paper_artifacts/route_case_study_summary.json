@@ -1,0 +1,95 @@
+{
+  "instance_id": "synthetic_000543",
+  "selection": {
+    "instance_id": "synthetic_000543",
+    "selection_rule": "positive baseline-full improvement nearest 60th percentile after excluding 10% tails",
+    "baseline_minus_full_cost": 0.1560811996459961,
+    "target_improvement": 0.1560983657836914
+  },
+  "dataset_file": "/root/autodl-tmp/data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt",
+  "route_source": "Neural routes were deterministically re-inferred from checkpoints with 8-fold augmentation; LKH route came from normalized_tour_file.",
+  "models": {
+    "LKH": {
+      "reported_cost": 14.848607,
+      "feasible": true,
+      "violation_count": 0,
+      "path": "/root/autodl-tmp/test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/evaluations/lkh_low_first/normalized_tours/synthetic_000543.14848607.tour",
+      "reported_gap_to_lkh_percent": 0.0,
+      "route_cost_from_coords": 14.848602340278882,
+      "route_violation_count": 0,
+      "route_feasible": true
+    },
+    "POMO baseline": {
+      "derived_cost": 15.0840482711792,
+      "feasible": true,
+      "violation_count": 0,
+      "best_batch_idx": 4,
+      "best_pomo_idx": 0,
+      "reported_cost": 15.0840482711792,
+      "reported_gap_to_lkh_percent": 1.5856118434490172,
+      "route_cost_from_coords": 15.084048810964807,
+      "route_violation_count": 0,
+      "route_feasible": true
+    },
+    "Full model": {
+      "derived_cost": 14.927967071533203,
+      "feasible": true,
+      "violation_count": 0,
+      "best_batch_idx": 0,
+      "best_pomo_idx": 0,
+      "reported_cost": 14.927967071533203,
+      "reported_gap_to_lkh_percent": 0.5344613911136828,
+      "route_cost_from_coords": 14.92796674888641,
+      "route_violation_count": 0,
+      "route_feasible": true
+    },
+    "scheduled bias": {
+      "derived_cost": 15.041730880737305,
+      "feasible": true,
+      "violation_count": 0,
+      "best_batch_idx": 7,
+      "best_pomo_idx": 0,
+      "reported_cost": 15.041730880737305,
+      "reported_gap_to_lkh_percent": 1.3006195176241466,
+      "route_cost_from_coords": 15.04172982426533,
+      "route_violation_count": 0,
+      "route_feasible": true
+    },
+    "w/o all bias": {
+      "derived_cost": 15.114238739013672,
+      "feasible": true,
+      "violation_count": 0,
+      "best_batch_idx": 5,
+      "best_pomo_idx": 0,
+      "reported_cost": 15.114238739013672,
+      "reported_gap_to_lkh_percent": 1.7889337297005197,
+      "route_cost_from_coords": 15.114237882611862,
+      "route_violation_count": 0,
+      "route_feasible": true
+    },
+    "w/o fusion gate": {
+      "derived_cost": 15.066167831420898,
+      "feasible": true,
+      "violation_count": 0,
+      "best_batch_idx": 5,
+      "best_pomo_idx": 0,
+      "reported_cost": 15.066167831420898,
+      "reported_gap_to_lkh_percent": 1.46519354590568,
+      "route_cost_from_coords": 15.066167423638708,
+      "route_violation_count": 0,
+      "route_feasible": true
+    },
+    "w/o group emb.": {
+      "derived_cost": 15.224599838256836,
+      "feasible": true,
+      "violation_count": 0,
+      "best_batch_idx": 5,
+      "best_pomo_idx": 13,
+      "reported_cost": 15.224599838256836,
+      "reported_gap_to_lkh_percent": 2.5321758347893275,
+      "route_cost_from_coords": 15.224599308721636,
+      "route_violation_count": 0,
+      "route_feasible": true
+    }
+  }
+}
