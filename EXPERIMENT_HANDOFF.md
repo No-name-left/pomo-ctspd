@@ -1,6 +1,6 @@
 # POMO-CTSP-d Experiment Handoff
 
-Last updated: 2026-04-26
+Last updated: 2026-04-27
 
 This file records the experiment decisions and operational changes needed for
 another AI or researcher to continue the undergraduate-thesis experiment without
@@ -15,8 +15,9 @@ Give a future AI or collaborator these files first:
    framing, result paths, caveats, and operation log.
 2. `README.md`
    Repository-level overview and basic project orientation.
-3. `test_results/thesis_main_synthetic_n100_g8_d1_20260426/paper_artifacts/README.md`
-   Main same-distribution result tables/figures and how to use them.
+3. `test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/paper_artifacts/README.md`
+   Main same-distribution result tables/figures with the LOW_FIRST LKH
+   benchmark and inference-time comparison.
 4. `test_results/thesis_benchmark_cluster_large_n100_d1_20260426/paper_artifacts/README.md`
    External LKH comparison outputs and interpretation caution.
 5. `test_results/reproducibility_check_20260426/README.md`
@@ -68,6 +69,18 @@ Final thesis model set after the 2026-04-25 discussion:
 - wo_all_bias_n100_g8_d1:
   `CSTPd_cluster/POMO/train_n100_wo_all_bias.py`
 
+Classical benchmark added on 2026-04-27:
+
+- LOW_FIRST-patched LKH 3.0.14:
+  `LKH-3.0.14/`, built with `make CTSPD_PRIORITY=LOW_FIRST`.
+  This is not a trained neural model. It is used as a strong heuristic
+  benchmark on the same fixed synthetic CTSP-d test set. The patch makes LKH
+  follow this repository's convention that lower priority-group ids mean higher
+  priority. The default upstream CTSP-D interpretation should be recovered by
+  rebuilding without `CTSPD_PRIORITY=LOW_FIRST`.
+  Note: LKH has upstream licensing terms in `LKH-3.0.14/README.txt`; be careful
+  before redistributing the LKH folder outside the research context.
+
 The two structural ablation scripts have been updated to the new learnable-bias
 configuration for possible retraining:
 
@@ -97,6 +110,21 @@ from these scripts will be learnable-bias structural ablations.
 - `scripts/run_training_queue.py`
   Runs training scripts sequentially in the background-friendly queue style.
   It does not change checkpoint or result-folder logic in the original trainers.
+
+- `scripts/run_lkh_ctspd_benchmark.py`
+  Exports the fixed synthetic `.pt` dataset to LKH-compatible `TYPE : CTSP-D`
+  instances with explicit distance matrices, runs the LOW_FIRST-patched LKH
+  executable, rotates/reverses returned tours to match the repository's
+  feasibility checker, and writes:
+  - `lkh_instances.csv`
+  - `lkh_summary.json`
+  - raw LKH tours, normalized tours, generated `.ctspd` instances, `.par`
+    files, and LKH logs.
+
+- `scripts/make_main_lkh_artifacts.py`
+  Merges the six neural-model evaluations with the LKH benchmark into one
+  `summary.csv` and paper-ready tables/figures, including cost, gap,
+  pairwise-win, training-curve, and inference-time plots.
 
 ## Final Bias Design
 
@@ -188,25 +216,36 @@ All main models should be evaluated on exactly this file.
 
 ## Final Result Outputs
 
-The final six-model thesis outputs produced on 2026-04-26 are:
+The current thesis-main outputs with the LKH benchmark produced on 2026-04-27 are:
 
 - Main same-distribution synthetic evaluation:
-  `test_results/thesis_main_synthetic_n100_g8_d1_20260426`
+  `test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427`
   - inference setting:
     8-fold geometric augmentation, greedy/POMO decoding, best candidate
     selection over augmented directions and POMO starts, no stochastic sampling.
   - fixed dataset:
     `data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt`
+  - LKH setting:
+    LOW_FIRST-patched LKH 3.0.14, `MAX_TRIALS=200`, `RUNS=1`,
+    `SCALE=1000000`, `MAX_CANDIDATES=6`; all 1000 LKH tours were feasible.
   - combined summary:
-    `test_results/thesis_main_synthetic_n100_g8_d1_20260426/summary.csv`
+    `test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/summary.csv`
   - paper-ready outputs:
-    `test_results/thesis_main_synthetic_n100_g8_d1_20260426/paper_artifacts`
+    `test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/paper_artifacts`
   - key files:
     `main_results_table.csv`, `main_results_table.md`, `ablation_table.csv`,
-    `pairwise_win_table.csv`, `test_average_cost_dotplot.png/.pdf`,
-    `improvement_vs_baseline_bar.png/.pdf`,
-    `ablation_delta_vs_full_bar.png/.pdf`, and
-    `training_score_curves.png/.pdf`.
+    `pairwise_win_counts.csv`, `pairwise_win_percent.csv`,
+    `per_instance_costs.csv`, `average_cost_with_lkh_bar.png/.pdf`,
+    `gap_to_lkh_bar.png/.pdf`, `per_instance_gap_to_lkh_boxplot.png/.pdf`,
+    `pairwise_win_heatmap.png/.pdf`, `time_per_instance_bar_log.png/.pdf`,
+    and `training_score_curves.png/.pdf`.
+
+The previous main synthetic result directory
+`test_results/thesis_main_synthetic_n100_g8_d1_20260426` was intentionally
+deleted on 2026-04-27 to avoid confusion after adding LKH.
+
+The older 2026-04-26 outputs that remain relevant for context are:
+
 - External LKH benchmark comparison:
   `test_results/thesis_benchmark_cluster_large_n100_d1_20260426`
   - inference setting:
@@ -265,16 +304,30 @@ The final six-model thesis outputs produced on 2026-04-26 are:
     evaluation to confirm exact stored `model_cost` reproduction.
 
 Main same-distribution synthetic test averages on the 1000 fixed n100/g8/d1
-instances:
+instances after adding LKH:
 
-| Model | Average cost | Feasible rate |
-|---|---:|---:|
-| Baseline | 15.49420291519165 | 1.0 |
-| New full learnable bias | 15.445868775367737 | 1.0 |
-| Scheduled/fixed bias | 15.452672064781188 | 1.0 |
-| True `w/o all bias` | 15.470991799354554 | 1.0 |
-| `w/o fusion gate` | 15.46614307975769 | 1.0 |
-| `w/o group embedding` | 15.69929798603058 | 1.0 |
+| Model | Average cost | Gap to LKH | Time / instance | Speedup vs LKH | Feasible rate |
+|---|---:|---:|---:|---:|---:|
+| LOW_FIRST LKH | 15.132940 | 0.000% | 7.189s | 1.0x | 1.0 |
+| Baseline | 15.494203 | 2.407% | 0.063s | 114.7x | 1.0 |
+| New full learnable bias | 15.445869 | 2.087% | 0.069s | 104.7x | 1.0 |
+| Scheduled/fixed bias | 15.452672 | 2.132% | 0.065s | 110.9x | 1.0 |
+| True `w/o all bias` | 15.470992 | 2.254% | 0.063s | 113.4x | 1.0 |
+| `w/o fusion gate` | 15.466143 | 2.222% | 0.064s | 111.8x | 1.0 |
+| `w/o group embedding` | 15.699298 | 3.762% | 0.065s | 110.3x | 1.0 |
+
+Interpretation of this table:
+
+- LKH is a much stronger heuristic reference on the fixed same-distribution
+  synthetic test set, but it is about two orders of magnitude slower than the
+  learned policies under the recorded budget.
+- Among neural models, the new full learnable-bias model remains the best
+  average-cost model on the thesis-main synthetic distribution.
+- The scheduled/fixed-bias ablation is very close to the full model, which
+  should be discussed as an important nuance rather than hidden.
+- The `w/o all bias` and structural ablations support the claim that explicit
+  priority/group information is useful, with `w/o group embedding` clearly
+  worse on the main synthetic distribution.
 
 External LKH benchmark averages on the 10 `Cluster_large` n100/d1 instances:
 
@@ -368,6 +421,26 @@ python scripts/evaluate_ctspd.py \
 
 The benchmark mode is external/generalization evaluation, not same-distribution
 testing.
+
+LOW_FIRST LKH synthetic benchmark:
+
+```bash
+cd LKH-3.0.14
+make CTSPD_PRIORITY=LOW_FIRST
+cd ..
+python scripts/run_lkh_ctspd_benchmark.py \
+  --max-trials 200 \
+  --runs 1 \
+  --output-dir test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/evaluations/lkh_low_first \
+  --timeout-sec 120
+```
+
+Regenerate paper artifacts after all evaluations are present:
+
+```bash
+python scripts/make_main_lkh_artifacts.py \
+  --result-dir test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427
+```
 
 ## Current Known State
 
@@ -748,6 +821,39 @@ testing.
   same-priority local search. A later targeted sample512 run was started and then
   stopped at user request; its partial outputs were discarded and are not
   committed.
+- 2026-04-27: Added LKH 3.0.14 as a classical synthetic benchmark. LKH's
+  upstream CTSP-D convention did not match this repository's priority rule, so
+  `LKH-3.0.14/SRC/Penalty_CTSP_D.c` now supports a compile-time
+  `CTSPD_LOW_PRIORITY_FIRST` mode and `LKH-3.0.14/SRC/Makefile` supports:
+  `make CTSPD_PRIORITY=LOW_FIRST`. The default build without this flag remains
+  the upstream behavior.
+- 2026-04-27: Added `scripts/run_lkh_ctspd_benchmark.py` to export the fixed
+  synthetic `.pt` dataset to LKH `TYPE : CTSP-D` instances with explicit
+  distance matrices, run the patched LKH, normalize tours by rotation/reversal,
+  and write per-instance costs/times.
+- 2026-04-27: Deleted the previous main synthetic result directory
+  `test_results/thesis_main_synthetic_n100_g8_d1_20260426` to avoid confusion,
+  reran all six neural models on
+  `data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt` with
+  `--augmentation-factor 8`, and ran LOW_FIRST LKH on all 1000 instances with
+  `MAX_TRIALS=200`, `RUNS=1`.
+- 2026-04-27: Added `scripts/make_main_lkh_artifacts.py` and generated the
+  unified main result directory:
+  `test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427`.
+  LKH summary:
+  - average cost = `15.132940`
+  - feasible rate = `1.0`
+  - total wall-clock time = `7189.209` seconds
+  - time per instance = `7.189` seconds
+  The new full learnable-bias model remains the best neural model:
+  average cost = `15.445869`, average gap to LKH = `2.087%`, time per
+  instance = `0.069` seconds, about `104.7x` faster than LKH.
+- 2026-04-27: Generated paper artifacts under
+  `test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/paper_artifacts`,
+  including the main table, ablation table, per-instance costs, pairwise win
+  tables, average-cost bar chart, gap-to-LKH chart, per-instance gap boxplot,
+  pairwise win heatmap, inference-time log-scale bar chart, and training-score
+  curves.
 
 Update this section whenever long-running training or evaluation jobs are
 started, stopped, or completed.

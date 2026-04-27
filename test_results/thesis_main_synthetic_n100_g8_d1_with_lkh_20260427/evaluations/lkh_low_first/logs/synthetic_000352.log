@@ -1,0 +1,10 @@
+PARAMETER_FILE = /root/autodl-tmp/test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/evaluations/lkh_low_first/par/synthetic_000352.par
+PROBLEM_FILE = /root/autodl-tmp/test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/evaluations/lkh_low_first/instances/synthetic_000352.ctspd
+Successes/Runs = 0/1 
+Cost.min = 15403107, Cost.avg = 15403107.00, Cost.max = 15403107
+Gap.min = 0.0000%, Gap.avg = 0.0000%, Gap.max = 0.0000%
+Penalty.min = 0, Penalty.avg = 0.00, Penalty.max = 0
+Trials.min = 200, Trials.avg = 200.0, Trials.max = 200
+Time.min = 7.02 sec., Time.avg = 7.02 sec., Time.max = 7.02 sec.
+Time.total = 7.07 sec.
+

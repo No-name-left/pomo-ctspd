@@ -1,0 +1,8 @@
+PROBLEM_FILE = /root/autodl-tmp/test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/evaluations/lkh_low_first/instances/synthetic_000045.ctspd
+SPECIAL
+MAX_CANDIDATES = 6
+TRACE_LEVEL = 0
+RUNS = 1
+SEED = 20260468
+MAX_TRIALS = 200
+TOUR_FILE = /root/autodl-tmp/test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/evaluations/lkh_low_first/raw_tours/synthetic_000045.$.tour

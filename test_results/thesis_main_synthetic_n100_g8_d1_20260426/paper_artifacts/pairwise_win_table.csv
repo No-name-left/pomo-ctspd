@@ -1,7 +1,0 @@
-model_key,model,wins_vs_baseline,ties_vs_baseline,losses_vs_baseline,mean_delta_vs_baseline,improvement_vs_baseline_percent,wins_vs_full,ties_vs_full,losses_vs_full,mean_delta_vs_full
-baseline,Baseline,0,1000,0,0.0,-0.0,388,0,612,0.048334139823913574
-full_learnable,Full learnable bias,612,0,388,-0.048334139823913574,0.31194983109794727,0,1000,0,0.0
-scheduled_bias,Scheduled/fixed bias,598,0,402,-0.04153085041046142,0.26804121927267094,481,1,518,0.006803289413452148
-wo_all_bias,w/o all bias,587,5,408,-0.023211115837097167,0.1498051623832762,438,0,562,0.025123023986816408
-wo_fusion_gate,w/o fusion gate,596,1,403,-0.02805983543395996,0.1810989283382112,431,1,568,0.020274304389953614
-wo_group_embedding,w/o group embedding,144,0,856,0.20509507083892822,-1.3236890723680792,102,0,898,0.2534292106628418
