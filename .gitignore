@@ -15,6 +15,9 @@ Thumbs.db
 # AutoDL local state
 .autodl/
 
+# Local archive for files removed from the final reproducible project
+archive_to_review/
+
 # Runtime logs
 debug.log
 *.log
@@ -36,103 +39,79 @@ TSP/POMO/result/
 !CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/
 CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/*
 !CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/checkpoint-best.pt
-!CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/checkpoint-latest.pt
 !CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/training_metrics.csv
 !CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/training_progress.json
 !CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/latest-train_loss.jpg
 !CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/latest-train_score.jpg
-!CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/img/
-!CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/img/*.jpg
 !CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/src/
 !CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/src/*.py
 
 !CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/
 CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/*
 !CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/checkpoint-best.pt
-!CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/checkpoint-latest.pt
 !CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/training_metrics.csv
 !CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/training_progress.json
 !CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/latest-train_loss.jpg
 !CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/latest-train_score.jpg
-!CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/img/
-!CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/img/*.jpg
 !CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/src/
 !CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/src/*.py
 
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/
 CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/*
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/checkpoint-best.pt
-!CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/checkpoint-latest.pt
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/training_metrics.csv
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/training_progress.json
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/latest-train_loss.jpg
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/latest-train_score.jpg
-!CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/img/
-!CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/img/*.jpg
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/src/
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/src/*.py
 
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/
 CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/*
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/checkpoint-best.pt
-!CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/checkpoint-latest.pt
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/training_metrics.csv
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/training_progress.json
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/latest-train_loss.jpg
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/latest-train_score.jpg
-!CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/img/
-!CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/img/*.jpg
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/src/
 !CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/src/*.py
 
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/
 CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/*
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/checkpoint-best.pt
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/checkpoint-latest.pt
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/training_metrics.csv
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/training_progress.json
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/latest-train_loss.jpg
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/latest-train_score.jpg
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/img/
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/img/*.jpg
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/src/
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_new_full_learnable_bias*/src/*.py
 
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/
 CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/*
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/checkpoint-best.pt
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/checkpoint-latest.pt
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/training_metrics.csv
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/training_progress.json
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/latest-train_loss.jpg
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/latest-train_score.jpg
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/img/
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/img/*.jpg
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/src/
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_wo_all_bias*/src/*.py
 
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/
 CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/*
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/checkpoint-best.pt
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/checkpoint-latest.pt
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/training_metrics.csv
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/training_progress.json
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/latest-train_loss.jpg
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/latest-train_score.jpg
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/img/
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/img/*.jpg
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/src/
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_group_embedding*/src/*.py
 
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/
 CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/*
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/checkpoint-best.pt
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/checkpoint-latest.pt
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/training_metrics.csv
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/training_progress.json
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/latest-train_loss.jpg
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/latest-train_score.jpg
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/img/
-!CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/img/*.jpg
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/src/
 !CSTPd_cluster/POMO/result/*cluster_n100_d1_learnable_bias_wo_fusion_gate*/src/*.py

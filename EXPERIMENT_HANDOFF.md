@@ -15,15 +15,19 @@ Give a future AI or collaborator these files first:
    framing, result paths, caveats, and operation log.
 2. `README.md`
    Repository-level overview and basic project orientation.
-3. `test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/paper_artifacts/README.md`
+3. `PROJECT_STRUCTURE.md`
+   Cleaned repository layout and final reproduction flow.
+4. `MODEL_ARTIFACTS.md`
+   Final checkpoint/config/log/test-result inventory.
+5. `RESULT_ARTIFACTS.md`
+   Final dataset, result, LKH, and paper-artifact inventory.
+6. `test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/paper_artifacts/README.md`
    Main same-distribution result tables/figures with the LOW_FIRST LKH
    benchmark and inference-time comparison.
-4. `test_results/thesis_benchmark_cluster_large_n100_d1_20260426/paper_artifacts/README.md`
-   External LKH comparison outputs and interpretation caution.
-5. `test_results/reproducibility_check_20260426/README.md`
-   Pass/fail reproducibility summary plus durable artifact checksums.
-6. `comparison_results/README.md`
-   Background for historical comparison/enhanced-inference outputs, if needed.
+7. `test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/paper_artifacts/FIGURE_HANDOFF.md`
+   Final figure placement, caption, and downgrade/delete decisions.
+8. `PROJECT_FILE_AUDIT.md`
+   Cleanup audit and archive decisions.
 
 ## Research Positioning
 
@@ -244,22 +248,24 @@ The previous main synthetic result directory
 `test_results/thesis_main_synthetic_n100_g8_d1_20260426` was intentionally
 deleted on 2026-04-27 to avoid confusion after adding LKH.
 
-The older 2026-04-26 outputs that remain relevant for context are:
+The older 2026-04-26 outputs were moved to local `archive_to_review/old_results/`
+during the 2026-04-27 project cleanup. They remain useful context, but they are
+not part of the final submitted reproducible artifact set:
 
 - External LKH benchmark comparison:
-  `test_results/thesis_benchmark_cluster_large_n100_d1_20260426`
+  `archive_to_review/old_results/test_results/thesis_benchmark_cluster_large_n100_d1_20260426`
   - inference setting:
     `anchor,mds` reconstructed feature modes, 8-fold geometric augmentation on
     those features, greedy/POMO decoding, best candidate selection by the
     original CTSP-d distance matrix, no stochastic sampling or local search.
   - instances:
-    `CTSPd(SOTA)/INSTANCES/Cluster_large/*100-C-*-1-*.ctspd`
+    archived `CTSPd(SOTA)/INSTANCES/Cluster_large/*100-C-*-1-*.ctspd`
   - LKH references:
-    `test_results/thesis_benchmark_cluster_large_n100_d1_20260426/lkh_reference.csv`
+    `archive_to_review/old_results/test_results/thesis_benchmark_cluster_large_n100_d1_20260426/lkh_reference.csv`
   - combined summary:
-    `test_results/thesis_benchmark_cluster_large_n100_d1_20260426/summary.csv`
+    `archive_to_review/old_results/test_results/thesis_benchmark_cluster_large_n100_d1_20260426/summary.csv`
   - paper-ready outputs:
-    `test_results/thesis_benchmark_cluster_large_n100_d1_20260426/paper_artifacts`
+    `archive_to_review/old_results/test_results/thesis_benchmark_cluster_large_n100_d1_20260426/paper_artifacts`
   - key files:
     `benchmark_results_table.csv`, `benchmark_results_table.md`,
     `per_instance_costs.csv`, `per_instance_winner_counts.csv`,
@@ -267,20 +273,20 @@ The older 2026-04-26 outputs that remain relevant for context are:
     `per_instance_gap_heatmap.png/.pdf`, and
     `model_costs_vs_lkh.png/.pdf`.
 - Enhanced external LKH benchmark stress test:
-  `test_results/thesis_benchmark_cluster_large_n100_d1_aug8_sample64_ls20_20260426`
+  `archive_to_review/old_results/test_results/thesis_benchmark_cluster_large_n100_d1_aug8_sample64_ls20_20260426`
   - inference setting:
     `anchor,mds` reconstructed feature modes, 8-fold geometric augmentation,
     greedy/POMO decoding plus 64 stochastic sampling runs per feature mode,
     best candidate selection by the original CTSP-d distance matrix, and
     same-priority swap local search with up to 20 passes.
   - combined summary:
-    `test_results/thesis_benchmark_cluster_large_n100_d1_aug8_sample64_ls20_20260426/summary.csv`
+    `archive_to_review/old_results/test_results/thesis_benchmark_cluster_large_n100_d1_aug8_sample64_ls20_20260426/summary.csv`
   - per-model outputs:
-    `test_results/thesis_benchmark_cluster_large_n100_d1_aug8_sample64_ls20_20260426/evaluations/<model>/`
+    `archive_to_review/old_results/test_results/thesis_benchmark_cluster_large_n100_d1_aug8_sample64_ls20_20260426/evaluations/<model>/`
   - each per-model output includes `test_instances.csv`, `test_summary.json`,
     and 10 saved final `.tour` files.
 - Full learnable model-only inference exploration:
-  `test_results/full_learnable_model_only_best_of_ensemble_20260426`
+  `archive_to_review/old_results/test_results/full_learnable_model_only_best_of_ensemble_20260426`
   - inference setting:
     no model-weight changes and no traditional optimization/post-processing;
     candidates are generated only by the full learnable-bias model with
@@ -288,13 +294,13 @@ The older 2026-04-26 outputs that remain relevant for context are:
     generated candidate per instance is selected by the original CTSP-d
     distance matrix.
   - supporting completed runs:
-    `test_results/full_learnable_model_only_parallel_ensemble_20260426`,
-    `test_results/full_learnable_model_only_mds_deep_sampling_20260426`, and
-    `test_results/full_learnable_model_only_temperature_sweep_20260426`.
+    `archive_to_review/old_results/test_results/full_learnable_model_only_parallel_ensemble_20260426`,
+    `archive_to_review/old_results/test_results/full_learnable_model_only_mds_deep_sampling_20260426`, and
+    `archive_to_review/old_results/test_results/full_learnable_model_only_temperature_sweep_20260426`.
   - key files:
     `README.md`, `summary.csv`, `summary.json`, and `best_instances.csv`.
 - Reproducibility check:
-  `test_results/reproducibility_check_20260426`
+  `archive_to_review/old_results/test_results/reproducibility_check_20260426`
   - `README.md`: human-readable pass/fail report.
   - `repro_check.json`: machine-readable checks and SHA256 checksums.
   - The check strictly loaded all six `checkpoint-best.pt` files on CPU,
@@ -405,7 +411,10 @@ python scripts/evaluate_ctspd.py \
 Use `--model-variant scheduled_bias` for the old scheduled/fixed-bias ablation
 and `--model-variant wo_all_bias` for the true no-bias ablation.
 
-External benchmark test, kept separate from synthetic main testing:
+External benchmark test, kept separate from synthetic main testing. This now
+requires restoring the archived external data from
+`archive_to_review/external_benchmarks/CTSPd(SOTA)/` or providing an equivalent
+local path:
 
 ```bash
 python scripts/evaluate_ctspd.py \
@@ -413,7 +422,7 @@ python scripts/evaluate_ctspd.py \
   --model-variant learnable_bias \
   --checkpoint CSTPd_cluster/POMO/result/<run>/checkpoint-best.pt \
   --mode benchmark \
-  --instance-glob "CTSPd(SOTA)/INSTANCES/Cluster_large/*100-C-*-1-*.ctspd" \
+  --instance-glob "archive_to_review/external_benchmarks/CTSPd(SOTA)/INSTANCES/Cluster_large/*100-C-*-1-*.ctspd" \
   --lkh-reference lkh_reference.csv \
   --augmentation-factor 8 \
   --benchmark-feature-modes anchor,mds
@@ -451,24 +460,21 @@ python scripts/make_main_lkh_artifacts.py \
   non-preferred baseline result and should not be used as the thesis-main
   baseline now that the 2026-04-21 baseline result is available.
 - The thesis-main baseline result is valid and committed under:
-  `CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/checkpoint-best.pt`
-  and `checkpoint-latest.pt`.
+  `CSTPd_bsl/POMO/result/thesis_baseline_n100_g8_d1/checkpoint-best.pt`.
   - epoch 160 / 160
   - best_epoch = 155
   - best_value = 15.784607734985352
   - total_training_time_sec = 17400.975403547287
 - The old full-cluster result is retained as the scheduled/fixed-bias ablation
   under:
-  `CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/checkpoint-best.pt`
-  and `checkpoint-latest.pt`.
+  `CSTPd_cluster/POMO/result/ablation_scheduled_bias_n100_g8_d1/checkpoint-best.pt`.
   - epoch 160 / 160
   - best_epoch = 159
   - best_value = 15.73443634338379
   - total_training_time_sec = 17658.182819128036
 - The legacy structural ablation, `w/o_group_embedding`, completed
   successfully under:
-  `CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/checkpoint-best.pt`
-  and `checkpoint-latest.pt`.
+  `CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_group_embedding_scheduled_bias_n100_g8_d1/checkpoint-best.pt`.
   - epoch 160 / 160
   - best_epoch = 154
   - best_value = 15.895662044067382
@@ -476,8 +482,7 @@ python scripts/make_main_lkh_artifacts.py \
   - avg_epoch_time_sec = 111.58295301496983
 - The legacy structural ablation, `w/o_fusion_gate`, completed
   successfully under:
-  `CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/checkpoint-best.pt`
-  and `checkpoint-latest.pt`.
+  `CSTPd_cluster/POMO/result/legacy_struct_ablation_wo_fusion_gate_scheduled_bias_n100_g8_d1/checkpoint-best.pt`.
   - epoch 160 / 160
   - best_epoch = 156
   - best_value = 15.786031008911133
@@ -493,8 +498,8 @@ python scripts/make_main_lkh_artifacts.py \
 - `.gitignore` keeps generic `result/` outputs ignored but whitelists the
   publishable thesis result artifacts for the final baseline, scheduled-bias
   ablation, legacy structural ablations, and future learnable-bias runs:
-  `checkpoint-best.pt`, `checkpoint-latest.pt`, `training_metrics.csv`,
-  `training_progress.json`, latest curve images, `img/*.jpg`, and `src/*.py`.
+  `checkpoint-best.pt`, `training_metrics.csv`, `training_progress.json`,
+  latest score/loss curve images, and `src/*.py` snapshots.
 - The required-ablation training queue completed on 2026-04-24:
   `training_runs/20260424_121503_custom_queue/queue_state.json`.
   Queue PID was `4702`.
@@ -505,8 +510,7 @@ python scripts/make_main_lkh_artifacts.py \
   but the final design now controls both bias terms together through
   `train_n100_wo_all_bias.py`.
 - New full learnable-bias training completed successfully under:
-  `CSTPd_cluster/POMO/result/25日_15点59分_cluster_n100_d1_new_full_learnable_bias/checkpoint-best.pt`
-  and `checkpoint-latest.pt`.
+  `CSTPd_cluster/POMO/result/25日_15点59分_cluster_n100_d1_new_full_learnable_bias/checkpoint-best.pt`.
   - epoch 160 / 160
   - best_epoch = 160
   - best_value = 15.724634099121094
@@ -561,7 +565,10 @@ python scripts/make_main_lkh_artifacts.py \
   re-uploaded completely, verified with `torch.load`, strict state-dict loading,
   and `training_progress.json`/`training_metrics.csv` checks. Their
   `checkpoint-best.pt`, `checkpoint-latest.pt`, metrics, progress JSON, source
-  snapshots, and training curve images were committed.
+  snapshots, and training curve images were initially committed; the 2026-04-27
+  cleanup later retained only `checkpoint-best.pt`, metrics/progress JSON,
+  source snapshots, and latest score/loss preview images in the final tracked
+  artifact set.
 - 2026-04-23: Reconstructed the clean `src/` snapshot for
   `CSTPd_cluster/POMO/result/21日_12点17分_cluster_n100_d1_resume_e116_to160`
   after its polluted uploaded `src/` folder was intentionally omitted.
@@ -854,6 +861,14 @@ python scripts/make_main_lkh_artifacts.py \
   tables, average-cost bar chart, gap-to-LKH chart, per-instance gap boxplot,
   pairwise win heatmap, inference-time log-scale bar chart, and training-score
   curves.
+- 2026-04-27: Cleaned the project structure for final thesis submission.
+  Retained the core CTSP-d code, final `checkpoint-best.pt` files, fixed
+  synthetic dataset, final LKH-backed result directory, and final paper figures.
+  Moved non-final external benchmark outputs, exploratory inference outputs,
+  original TSP reference code, external benchmark package, `checkpoint-latest.pt`
+  files, per-epoch result images, and runtime logs into local ignored
+  `archive_to_review/`. Added `PROJECT_STRUCTURE.md`, `MODEL_ARTIFACTS.md`,
+  `RESULT_ARTIFACTS.md`, and `PROJECT_FILE_AUDIT.md`.
 
 Update this section whenever long-running training or evaluation jobs are
 started, stopped, or completed.

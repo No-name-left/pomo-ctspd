@@ -17,14 +17,19 @@ CTSP-d 中，每个节点包含坐标和优先级组：`(x, y, priority)`。在�
 ## Repository Layout
 
 ```text
-TSP/POMO/          Original TSP POMO reference implementation
-CSTPd_bsl/         CTSP-d baseline model
-CSTPd_cluster/     CTSP-d cluster-aware model
-CTSPd(SOTA)/       Benchmark instances, LKH tours, and original scripts
+CSTPd_bsl/         CTSP-d POMO baseline code and final baseline artifacts
+CSTPd_cluster/     Priority/group-aware CTSP-d code, full model, and ablations
+data/              Fixed synthetic test set used by the thesis main experiment
+scripts/           Dataset generation, evaluation, LKH benchmark, and figures
+test_results/      Final LKH-backed synthetic experiment results
 LKH-3.0.14/        LKH source used for the LOW_FIRST synthetic benchmark
-scripts/           Dataset generation, evaluation, LKH benchmark, and summaries
 utils/             Logging, result folders, and training-curve utilities
+archive_to_review/ Local ignored archive for non-final or uncertain files
 ```
+
+Detailed artifact indexes are maintained in `PROJECT_STRUCTURE.md`,
+`MODEL_ARTIFACTS.md`, `RESULT_ARTIFACTS.md`, and
+`test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/paper_artifacts/FIGURE_HANDOFF.md`.
 
 ## Model Variants
 
@@ -46,37 +51,64 @@ conda activate py310-env
 pip install torch numpy matplotlib
 ```
 
-Train the cluster-aware N=20 model:
+The final thesis setting is `n=100`, `num_groups=8`, `d=1`. The fixed test set
+is already included at:
 
-```bash
-python CSTPd_cluster/POMO/train_n20.py
+```text
+data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt
 ```
 
-Train the baseline N=20 model:
+Generate the same test set again if needed:
 
 ```bash
-python CSTPd_bsl/POMO/train_n20.py
+python scripts/generate_synthetic_test_dataset.py \
+  --problem-size 100 \
+  --num-groups 8 \
+  --relaxation-d 1 \
+  --instance-num 1000 \
+  --seed 20260423
 ```
 
-Run single-instance inference on a benchmark `.ctspd` file:
+Evaluate a final checkpoint on the fixed synthetic test set:
 
 ```bash
-python CSTPd_cluster/POMO/test.py --instance-file "CTSPd(SOTA)/INSTANCES/Random_small/swiss42-R-3-2-b.ctspd" --model-dir "CSTPd_cluster/POMO/result/<your_run_dir>" --checkpoint-epoch 200 --device auto
+python scripts/evaluate_ctspd.py \
+  --model-type cluster \
+  --model-variant learnable_bias \
+  --checkpoint "CSTPd_cluster/POMO/result/25日_15点59分_cluster_n100_d1_new_full_learnable_bias/checkpoint-best.pt" \
+  --mode synthetic \
+  --dataset-file data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt \
+  --augmentation-factor 8
 ```
 
-Run random-instance testing from a saved checkpoint:
+Regenerate final paper figures from the stored results:
 
 ```bash
-python CSTPd_cluster/POMO/test_n20.py
+python scripts/plot_paper_figures.py \
+  --result-dir test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427
 ```
 
-Training and testing outputs are written under each model directory's `result/` folder. Model checkpoints and runtime logs are ignored by Git.
+Legacy small-size training scripts such as `train_n20.py` and `train_n50.py`
+remain for smoke tests, but they are not part of the final thesis main result.
 
-## Benchmark Data
+## Final Main Results
 
-`CTSPd(SOTA)/INSTANCES` contains 198 CTSP-d instances grouped into `Random_small`, `Random_large`, `Cluster_small`, and `Cluster_large`. `CTSPd(SOTA)/TOURS` contains LKH solution tours used for best-known-length comparison.
+The final retained result directory is:
 
-For file-based testing, the model input uses reconstructed normalized 2D features from the benchmark distance matrix, while the final reported tour length is computed using the original distance matrix.
+```text
+test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/
+```
+
+It contains per-model raw results, the LOW_FIRST LKH reference run, combined
+`summary.csv`, final paper tables, and final paper figures. See
+`RESULT_ARTIFACTS.md` for the exact inventory.
+
+## External Benchmark Data
+
+The older `CTSPd(SOTA)/` external benchmark package and historical external
+benchmark outputs were moved to local `archive_to_review/` during cleanup.
+They are useful context for manual inspection but are no longer part of the
+final submitted reproducible artifact set.
 
 ## LKH Synthetic Benchmark
 
