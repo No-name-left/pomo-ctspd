@@ -1,0 +1,29 @@
+{
+  "created_at": "2026-04-27T18:12:58",
+  "dataset_file": "/root/autodl-tmp/data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt",
+  "dataset_metadata": {
+    "dataset_type": "synthetic_fixed",
+    "created_at": "2026-04-23T15:09:27",
+    "problem_size": 100,
+    "num_groups": 8,
+    "relaxation_d": 1,
+    "instance_num": 1000,
+    "seed": 20260423,
+    "notes": "Fixed same-distribution synthetic test set: random coordinates and random priority-group assignment. This is the main n100/g8/d1 test set."
+  },
+  "lkh_executable": "/root/autodl-tmp/LKH-3.0.14/LKH",
+  "output_dir": "/root/autodl-tmp/test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/evaluations/lkh_low_first",
+  "test_instance_num": 1000,
+  "start_index": 0,
+  "limit": null,
+  "scale": 1000000,
+  "max_trials": 200,
+  "runs": 1,
+  "seed": 20260423,
+  "average_cost": 15.132939708,
+  "std_cost": 0.5287108460597614,
+  "best_cost": 13.509061,
+  "worst_cost": 16.892115,
+  "feasible_rate": 1.0,
+  "total_time_sec": 7189.209058973938
+}

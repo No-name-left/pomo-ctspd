@@ -1,0 +1,7 @@
+﻿"model_key","model","wins_out_of_10"
+"baseline","Baseline","0"
+"full_learnable","Full learnable bias","1"
+"scheduled_bias","Scheduled/fixed bias","0"
+"wo_all_bias","w/o all bias","2"
+"wo_fusion_gate","w/o fusion gate","0"
+"wo_group_embedding","w/o group embedding","7"

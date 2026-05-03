@@ -1,0 +1,8 @@
+model_key,model_label,beats_lkh_low_first,beats_baseline,beats_full_learnable,beats_scheduled_bias,beats_wo_all_bias,beats_wo_fusion_gate,beats_wo_group_embedding
+lkh_low_first,LKH,0,938,915,929,927,931,980
+baseline,POMO baseline,62,0,388,402,408,403,856
+full_learnable,Full model,85,612,0,518,562,568,898
+scheduled_bias,Scheduled bias,71,598,481,0,550,542,890
+wo_all_bias,w/o all bias,73,587,438,450,0,478,886
+wo_fusion_gate,w/o fusion gate,69,596,431,457,515,0,886
+wo_group_embedding,w/o group emb.,20,144,102,110,114,114,0

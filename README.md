@@ -20,6 +20,7 @@ CTSP-d 中，每个节点包含坐标和优先级组：`(x, y, priority)`。在�
 CSTPd_bsl/         CTSP-d POMO baseline code and final baseline artifacts
 CSTPd_cluster/     Priority/group-aware CTSP-d code, full model, and ablations
 data/              Fixed synthetic test set used by the thesis main experiment
+paper_data/        Curated thesis data bundle with recovered external results
 scripts/           Dataset generation, evaluation, LKH benchmark, and figures
 test_results/      Final LKH-backed synthetic experiment results
 LKH-3.0.14/        LKH source used for the LOW_FIRST synthetic benchmark
@@ -28,7 +29,7 @@ archive_to_review/ Local ignored archive for non-final or uncertain files
 ```
 
 Detailed artifact indexes are maintained in `PROJECT_STRUCTURE.md`,
-`MODEL_ARTIFACTS.md`, `RESULT_ARTIFACTS.md`, and
+`MODEL_ARTIFACTS.md`, `RESULT_ARTIFACTS.md`, `paper_data/README.md`, and
 `test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/paper_artifacts/FIGURE_HANDOFF.md`.
 
 ## Model Variants
@@ -75,7 +76,7 @@ Evaluate a final checkpoint on the fixed synthetic test set:
 python scripts/evaluate_ctspd.py \
   --model-type cluster \
   --model-variant learnable_bias \
-  --checkpoint "CSTPd_cluster/POMO/result/25日_15点59分_cluster_n100_d1_new_full_learnable_bias/checkpoint-best.pt" \
+  --checkpoint "CSTPd_cluster/POMO/result/<full_learnable_run>/checkpoint-best.pt" \
   --mode synthetic \
   --dataset-file data/synthetic_tests/synthetic_n100_g8_d1_1000_seed20260423.pt \
   --augmentation-factor 8
@@ -91,6 +92,30 @@ python scripts/plot_paper_figures.py \
 Legacy small-size training scripts such as `train_n20.py` and `train_n50.py`
 remain for smoke tests, but they are not part of the final thesis main result.
 
+## Paper Data Bundle
+
+The paper-facing data bundle is:
+
+```text
+paper_data/
+```
+
+It contains the fixed dataset metadata, curated main synthetic results,
+recovered historical external benchmark results, aligned per-instance tables,
+pairwise/winner tables, and final training metrics. Start from:
+
+- `paper_data/README.md`
+- `paper_data/EXPERIMENT_INDEX.csv`
+- `paper_data/MANIFEST.csv`
+
+The historical external benchmark results were recovered from git history and
+renamed for clarity:
+
+- `paper_data/02_external_cluster_large_n100_d1_aug8/`
+- `paper_data/03_external_cluster_large_n100_d1_aug8_sample64_ls20/`
+
+Existing figures were not regenerated or restyled in this cleanup.
+
 ## Final Main Results
 
 The final retained result directory is:
@@ -101,14 +126,23 @@ test_results/thesis_main_synthetic_n100_g8_d1_with_lkh_20260427/
 
 It contains per-model raw results, the LOW_FIRST LKH reference run, combined
 `summary.csv`, final paper tables, and final paper figures. See
-`RESULT_ARTIFACTS.md` for the exact inventory.
+`RESULT_ARTIFACTS.md` for the exact inventory. A compact text-data copy for
+paper writing is available under `paper_data/01_main_synthetic_n100_g8_d1_lkh/`.
 
 ## External Benchmark Data
 
-The older `CTSPd(SOTA)/` external benchmark package and historical external
-benchmark outputs were moved to local `archive_to_review/` during cleanup.
-They are useful context for manual inspection but are no longer part of the
-final submitted reproducible artifact set.
+The `external_benchmarks/CTSPd_SOTA/` package is present for the TSPLIB-derived
+CTSP-d benchmark instances and LKH tour references. Two historical external
+result sets have been restored into `paper_data/` for context:
+
+- `02_external_cluster_large_n100_d1_aug8`: 10 `Cluster_large` n100/d1
+  instances, `anchor,mds` reconstructed features, 8-fold augmentation, and
+  greedy/POMO best selection.
+- `03_external_cluster_large_n100_d1_aug8_sample64_ls20`: the same 10
+  instances with 64 sampling runs plus 20 same-priority local-search passes.
+
+These are external/generalization checks. The final same-distribution thesis
+result remains the fixed synthetic n100/g8/d1 experiment.
 
 ## LKH Synthetic Benchmark
 
